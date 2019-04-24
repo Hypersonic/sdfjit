@@ -61,8 +61,8 @@ void Ast::dump(std::ostream &os) {
 
 void dump_node_sexpr(const Ast &ast, Node_Id id, std::ostream &os,
                      size_t indent) {
-  auto emit_indent = [&os](size_t indent) {
-    for (size_t i = 0; i < indent; i++) {
+  auto emit_indent = [&os](size_t indent_) {
+    for (size_t i = 0; i < indent_; i++) {
       os << "  ";
     }
   };
