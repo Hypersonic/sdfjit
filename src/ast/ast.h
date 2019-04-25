@@ -38,6 +38,7 @@ using Node_Id = int32_t;
 constexpr Node_Id IN_X = -1;
 constexpr Node_Id IN_Y = -2;
 constexpr Node_Id IN_Z = -3;
+constexpr Node_Id IN_CONSTANTS = -4;
 
 struct Ast;
 

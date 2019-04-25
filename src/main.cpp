@@ -24,7 +24,7 @@ int main() {
   std::cout << "AST (sexpr):" << std::endl;
   ast.dump_sexpr(std::cout);
   std::cout << "=====================" << std::endl;
-  std::cout << "AST (linearized):" << std::endl;
+  std::cout << "AST (linearized + CSE pass):" << std::endl;
   ast.dump(std::cout);
   std::cout << "=====================" << std::endl;
 
@@ -36,10 +36,6 @@ int main() {
   std::cout << "=====================" << std::endl;
   std::cout << "Machine Code:" << std::endl;
 
-  sdfjit::machinecode::Machine_Code mc{};
-
-  using MR = sdfjit::machinecode::Machine_Register;
-  using sdfjit::machinecode::Register;
-  mc.movaps(Register::Memory(MR::rdi, 1234));
+  auto mc = sdfjit::machinecode::Machine_Code::from_bytecode(bc);
   std::cout << mc;
 }

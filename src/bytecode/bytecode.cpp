@@ -48,6 +48,7 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
   auto arg_x = bc.load_arg(0);
   auto arg_y = bc.load_arg(1);
   auto arg_z = bc.load_arg(2);
+  auto arg_constants = bc.load_arg(3);
 
   ast_to_bc[sdfjit::ast::IN_X] = arg_x;
   ast_results[sdfjit::ast::IN_X] = {arg_x};
@@ -55,6 +56,8 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
   ast_results[sdfjit::ast::IN_Y] = {arg_y};
   ast_to_bc[sdfjit::ast::IN_Z] = arg_z;
   ast_results[sdfjit::ast::IN_Z] = {arg_z};
+  ast_to_bc[sdfjit::ast::IN_CONSTANTS] = arg_constants;
+  ast_results[sdfjit::ast::IN_CONSTANTS] = {arg_constants};
 
   for (size_t i = 0; i < ast.nodes.size(); i++) {
     const auto &node = ast.nodes[i];
