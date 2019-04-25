@@ -36,5 +36,10 @@ int main() {
   std::cout << "=====================" << std::endl;
   std::cout << "Machine Code:" << std::endl;
 
-  std::cout << sdfjit::machinecode::Machine_Register::ymm4 << std::endl;
+  sdfjit::machinecode::Machine_Code mc{};
+
+  using MR = sdfjit::machinecode::Machine_Register;
+  using sdfjit::machinecode::Register;
+  mc.movaps(Register::Memory(MR::rdi, 1234));
+  std::cout << mc;
 }

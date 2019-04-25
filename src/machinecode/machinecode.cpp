@@ -74,12 +74,24 @@ std::ostream &operator<<(std::ostream &os, const Op op) {
 #undef MACHINE_OP_TOSTRING
 }
 
+std::ostream &operator<<(std::ostream &os, const Memory_Reference mem) {
+  if (mem.is_virtual()) {
+    return os << '[' << mem.virtual_reg() << " + " << mem.offset << ']';
+  } else if (mem.is_machine()) {
+    return os << '[' << mem.machine_reg() << " + " << mem.offset << ']';
+  }
+  abort();
+}
+
 std::ostream &operator<<(std::ostream &os, const Register reg) {
   if (reg.is_virtual()) {
     return os << '@' << reg.virtual_reg();
-  } else {
+  } else if (reg.is_machine()) {
     return os << reg.machine_reg();
+  } else if (reg.is_memory()) {
+    return os << reg.memory_ref();
   }
+  abort();
 }
 
 std::ostream &operator<<(std::ostream &os, const Instruction &insn) {

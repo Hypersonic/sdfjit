@@ -61,9 +61,10 @@ enum class Op { FOREACH_MACHINE_OP(MACHINE_OP_ENUM) };
 struct Memory_Reference {
   // For the base register, same as the corresponding definitions in Register
   enum class Kind { Virtual, Machine };
+  using Register_Type = std::variant<Virtual_Register, Machine_Register>;
 
   Kind kind;
-  std::variant<Virtual_Register, Machine_Register> base;
+  Register_Type base;
   size_t offset;
 
   bool is_virtual() const { return kind == Kind::Virtual; }
@@ -81,9 +82,22 @@ struct Register {
   // machine = has a concrete register assigned
   // memory  = register + offset assigned, as in [rdi + 0x1234]
   enum class Kind { Virtual, Machine, Memory };
+  using Register_Type =
+      std::variant<Virtual_Register, Machine_Register, Memory_Reference>;
 
   Kind kind;
-  std::variant<Virtual_Register, Machine_Register, Memory_Reference> reg;
+  Register_Type reg;
+
+  static Register Virtual(size_t reg) { return {Kind::Virtual, reg}; }
+  static Register Machine(Machine_Register reg) { return {Kind::Machine, reg}; }
+  static Register Memory(Virtual_Register base, size_t index) {
+    return {Kind::Memory,
+            Memory_Reference{Memory_Reference::Kind::Virtual, base, index}};
+  }
+  static Register Memory(Machine_Register base, size_t index) {
+    return {Kind::Memory,
+            Memory_Reference{Memory_Reference::Kind::Machine, base, index}};
+  }
 
   bool is_virtual() const { return kind == Kind::Virtual; }
   bool is_machine() const { return kind == Kind::Machine; }
@@ -97,7 +111,7 @@ struct Register {
   Memory_Reference memory_ref() const {
     return std::get<Memory_Reference>(reg);
   }
-};
+}; // namespace sdfjit::machinecode
 
 struct Instruction {
   Op op;
@@ -126,6 +140,7 @@ struct Machine_Code {
 };
 
 std::ostream &operator<<(std::ostream &os, const Machine_Register reg);
+std::ostream &operator<<(std::ostream &os, const Memory_Reference mem);
 std::ostream &operator<<(std::ostream &os, const Op op);
 std::ostream &operator<<(std::ostream &os, const Register reg);
 std::ostream &operator<<(std::ostream &os, const Instruction &insn);
