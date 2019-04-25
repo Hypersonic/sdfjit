@@ -27,7 +27,7 @@ void Bytecode::dump(std::ostream &os) {
       os << node.arg_index;
     } else {
       for (const auto arg_id : node.arguments) {
-        os << '@' << arg_id << ',';
+        os << '@' << arg_id << ", ";
       }
     }
     os << ')' << std::endl;

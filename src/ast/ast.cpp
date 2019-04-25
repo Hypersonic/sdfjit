@@ -51,7 +51,7 @@ void Ast::dump(std::ostream &os) {
     } else {
       // this will put an extra , on the last one but whatever
       for (const auto child_id : node.children) {
-        os << '@' << child_id << ',';
+        os << '@' << child_id << ", ";
       }
     }
 

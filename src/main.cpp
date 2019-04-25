@@ -5,13 +5,19 @@
 
 #include "bytecode/bytecode.h"
 
+#include "machinecode/machinecode.h"
+
 int main() {
   sdfjit::ast::Ast ast{};
   auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
                       sdfjit::ast::IN_Z); // x, y, z input parameters.
 
-  ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
-          ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
+  auto merged =
+      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
+              ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
+
+  merged = ast.add(merged, ast.box(ast.translate(pos, -60.0f, -60.0f, -60.0f),
+                                   20.0f, 20.0f, 20.0f));
 
   sdfjit::ast::opt::optimize(ast);
 
@@ -26,4 +32,9 @@ int main() {
 
   std::cout << "Bytecode:" << std::endl;
   bc.dump(std::cout);
+
+  std::cout << "=====================" << std::endl;
+  std::cout << "Machine Code:" << std::endl;
+
+  std::cout << sdfjit::machinecode::Machine_Register::ymm4 << std::endl;
 }
