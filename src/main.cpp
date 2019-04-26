@@ -28,14 +28,22 @@ int main() {
   ast.dump(std::cout);
   std::cout << "=====================" << std::endl;
 
-  auto bc = sdfjit::bytecode::Bytecode::from_ast(ast);
-
   std::cout << "Bytecode:" << std::endl;
+  auto bc = sdfjit::bytecode::Bytecode::from_ast(ast);
   bc.dump(std::cout);
-
   std::cout << "=====================" << std::endl;
-  std::cout << "Machine Code:" << std::endl;
 
+  std::cout << "Machine Code (imms inline, before register alloc):"
+            << std::endl;
   auto mc = sdfjit::machinecode::Machine_Code::from_bytecode(bc);
   std::cout << mc;
+  std::cout << "=====================" << std::endl;
+
+  std::cout << "Machine Code (imms resolved, before register alloc):"
+            << std::endl;
+  mc.resolve_immediates();
+  std::cout << mc;
+  std::cout << "Constant Pool:" << std::endl;
+  std::cout << mc.constants;
+  std::cout << "=====================" << std::endl;
 }

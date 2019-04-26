@@ -45,6 +45,17 @@ std::vector<Register> Instruction::used_registers() const {
 #undef GET_SET_REGISTER_IDXES
 }
 
+bool Instruction::can_use_immediates() const {
+#define USES_IMMEDIATE(op_name, num_args, set_reg_idxes, used_reg_idxes,       \
+                       takes_imm, ...)                                         \
+  case Op::op_name:                                                            \
+    return takes_imm;
+
+  switch (op) { FOREACH_MACHINE_OP(USES_IMMEDIATE); }
+  abort();
+#undef USES_IMMEDIATE
+}
+
 Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
   Machine_Code mc{};
 
@@ -149,6 +160,28 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
   return mc;
 }
 
+void Machine_Code::resolve_immediates() {
+  for (size_t i = 0; i < instructions.size(); i++) {
+    if (instructions[i].can_use_immediates())
+      continue;
+
+    for (auto &reg : instructions[i].registers) {
+      if (!reg.is_immediate())
+        continue;
+
+      // add constant to the pool
+      size_t constant_offset = constants.add(reg.imm());
+
+      // update the register to be a memory reference
+      // XXX: do we want to make an api to make this much cleaner?
+      //      if we find ourselves rewriting registers a lot it might be good...
+      reg.kind = Register::Kind::Memory;
+      reg.reg = get_argument_register(constant_pool_arg_index).reg;
+      reg.memory_ref().offset = constant_offset;
+    }
+  }
+}
+
 #define DEFINE_UNARY_OP(name, ...)                                             \
   Register Machine_Code::name(const Register &src) {                           \
     return add_instruction(                                                    \
@@ -247,7 +280,6 @@ Register get_argument_register(size_t arg_index) {
   default:
     abort();
   }
-
   return Register::Memory(reg, 0);
 }
 

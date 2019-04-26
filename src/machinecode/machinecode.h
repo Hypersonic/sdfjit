@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bytecode/bytecode.h"
+#include "constantpool.h"
 #include "util/bits.h"
 
 namespace sdfjit::machinecode {
@@ -47,31 +48,31 @@ using Virtual_Register = size_t;
     macro(ymm6, 0) \
     macro(ymm7, 0)
 
-// macro(op_name, num_args, set_reg_idxs, used_reg_idxs)
+// macro(op_name, num_args, set_reg_idxs, used_reg_idxs, takes_imm)
 // TODO: all the ops
 // ops are generally named after their native code mneumonic
 #define MC_INITIALIZER_LIST(...) { __VA_ARGS__ }
 
-#define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name) \
-    macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2)) \
+#define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2), takes_imm) \
 
-#define UNARY_MACHINE_OP_MACRO_WRAPPER(macro, name) \
-    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1)) \
+#define UNARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1), takes_imm) \
 
 #define FOREACH_BINARY_MACHINE_OP(macro) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps, false) \
 
 #define FOREACH_UNARY_MACHINE_OP(macro) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movd) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movaps) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movd, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movaps, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
 
 
 #define FOREACH_MACHINE_OP(macro) \
@@ -143,13 +144,17 @@ struct Register {
   Virtual_Register virtual_reg() const {
     return std::get<Virtual_Register>(reg);
   }
+  Virtual_Register &virtual_reg() { return std::get<Virtual_Register>(reg); }
   Machine_Register machine_reg() const {
     return std::get<Machine_Register>(reg);
   }
+  Machine_Register &machine_reg() { return std::get<Machine_Register>(reg); }
   Memory_Reference memory_ref() const {
     return std::get<Memory_Reference>(reg);
   }
+  Memory_Reference &memory_ref() { return std::get<Memory_Reference>(reg); }
   Immediate_Value imm() const { return std::get<Immediate_Value>(reg); }
+  Immediate_Value &imm() { return std::get<Immediate_Value>(reg); }
 
 }; // namespace sdfjit::machinecode
 
@@ -160,13 +165,18 @@ struct Instruction {
 
   std::vector<Register> set_registers() const;
   std::vector<Register> used_registers() const;
+  bool can_use_immediates() const;
 };
 
 struct Machine_Code {
   std::vector<Instruction> instructions{};
   Virtual_Register next_virtual_register{0};
+  Constant_Pool constants{};
+
+  static constexpr size_t constant_pool_arg_index = 3;
 
   static Machine_Code from_bytecode(const sdfjit::bytecode::Bytecode &bc);
+  void resolve_immediates();
 
   Instruction &add_instruction(const Instruction &insn) {
     instructions.push_back(insn);
