@@ -7,6 +7,8 @@
 
 #include "machinecode/machinecode.h"
 
+#include "machinecode/registerallocator.h"
+
 int main() {
   sdfjit::ast::Ast ast{};
   auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
@@ -46,4 +48,7 @@ int main() {
   std::cout << "Constant Pool:" << std::endl;
   std::cout << mc.constants;
   std::cout << "=====================" << std::endl;
+
+  sdfjit::machinecode::Linear_Scan_Register_Allocator lsra{};
+  lsra.compute_live_intervals(mc);
 }

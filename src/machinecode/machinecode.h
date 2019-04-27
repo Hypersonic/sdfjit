@@ -106,6 +106,20 @@ struct Memory_Reference {
   Machine_Register machine_reg() const {
     return std::get<Machine_Register>(base);
   }
+
+  bool operator==(const Memory_Reference &rhs) const {
+    if (kind != rhs.kind)
+      return false;
+
+    switch (kind) {
+    case Kind::Virtual:
+      return virtual_reg() == rhs.virtual_reg();
+    case Kind::Machine:
+      return machine_reg() == rhs.machine_reg();
+    default:
+      abort();
+    }
+  }
 };
 
 using Immediate_Value = uint32_t;
@@ -155,6 +169,24 @@ struct Register {
   Memory_Reference &memory_ref() { return std::get<Memory_Reference>(reg); }
   Immediate_Value imm() const { return std::get<Immediate_Value>(reg); }
   Immediate_Value &imm() { return std::get<Immediate_Value>(reg); }
+
+  bool operator==(const Register &rhs) const {
+    if (kind != rhs.kind)
+      return false;
+
+    switch (kind) {
+    case Kind::Virtual:
+      return virtual_reg() == rhs.virtual_reg();
+    case Kind::Machine:
+      return machine_reg() == rhs.machine_reg();
+    case Kind::Memory:
+      return memory_ref() == rhs.memory_ref();
+    case Kind::Immediate:
+      return imm() == rhs.imm();
+    default:
+      abort();
+    }
+  }
 
 }; // namespace sdfjit::machinecode
 
