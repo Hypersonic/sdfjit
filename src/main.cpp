@@ -50,5 +50,11 @@ int main() {
   std::cout << "=====================" << std::endl;
 
   sdfjit::machinecode::Linear_Scan_Register_Allocator lsra{};
-  lsra.compute_live_intervals(mc);
+  lsra.allocate(mc);
+
+  std::cout << "Machine Code (registers allocated):" << std::endl;
+  std::cout << mc;
+  std::cout << "Constant Pool:" << std::endl;
+  std::cout << mc.constants;
+  std::cout << "=====================" << std::endl;
 }

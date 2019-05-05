@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "machinecode.h"
@@ -57,16 +58,35 @@ struct Live_Interval_List {
 
     return result;
   }
+
+  Live_Interval_List sorted_by_start_point() const {
+    Live_Interval_List result{intervals};
+    std::sort(
+        result.intervals.begin(), result.intervals.end(),
+        [](Live_Interval &a, Live_Interval &b) { return a.first < b.first; });
+    return result;
+  }
+
+  std::vector<Live_Interval>::iterator begin() { return intervals.begin(); }
+  std::vector<Live_Interval>::iterator end() { return intervals.end(); }
+  size_t size() const { return intervals.size(); }
 };
 
 struct Linear_Scan_Register_Allocator {
   void allocate(Machine_Code &mc);
-  void expire_old_intervals(size_t i);
-  void spill_at_interval(size_t i);
-
   void compute_live_intervals(Machine_Code &mc);
 
   Live_Interval_List live_intervals{};
+
+  // registers we can use for anything
+  std::vector<Machine_Register> machine_registers{
+      Machine_Register::ymm0, Machine_Register::ymm1, Machine_Register::ymm2,
+      Machine_Register::ymm3, Machine_Register::ymm4};
+  // reserved register for holding spilled values while being worked on
+  // we need to reserve at least as many registers as the largest number of
+  // parameters an instruction can take so we can load them all if needed
+  std::vector<Machine_Register> temp_regs{
+      Machine_Register::ymm5, Machine_Register::ymm6, Machine_Register::ymm7};
 };
 
 } // namespace sdfjit::machinecode

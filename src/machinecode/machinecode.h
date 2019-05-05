@@ -6,6 +6,7 @@
 
 #include "bytecode/bytecode.h"
 #include "constantpool.h"
+#include "stack.h"
 #include "util/bits.h"
 
 namespace sdfjit::machinecode {
@@ -17,6 +18,8 @@ using Virtual_Register = size_t;
 // TODO: find register numbers in docs, for now they're all 0
 // XXX: we'll probably want to break this up by register family (normal, xmms, ymms, etc)
 #define FOREACH_MACHINE_REGISTER(macro) \
+    macro(rbp, 0) \
+    macro(rsp, 0) \
     macro(rdi, 0) \
     macro(rsi, 0) \
     macro(rdx, 0) \
@@ -198,12 +201,23 @@ struct Instruction {
   std::vector<Register> set_registers() const;
   std::vector<Register> used_registers() const;
   bool can_use_immediates() const;
+
+  void replace_register(const Register &from, const Register &to) {
+    for (size_t i = 0; i < registers.size(); i++) {
+      // XXX: we might need fancier things if we every do fancy effective-addrs
+      // with virtual regs or want to replace machine regs
+      if (registers[i] == from) {
+        registers[i] = to;
+      }
+    }
+  }
 };
 
 struct Machine_Code {
   std::vector<Instruction> instructions{};
   Virtual_Register next_virtual_register{0};
   Constant_Pool constants{};
+  Stack_Info stack_info{};
 
   static constexpr size_t constant_pool_arg_index = 3;
 
@@ -219,9 +233,13 @@ struct Machine_Code {
     return Register{Register::Kind::Virtual, next_virtual_register++};
   }
 
-#define UNARY_DECL(name, ...) Register name(const Register &src);
+#define UNARY_DECL(name, ...)                                                  \
+  Register name(const Register &src);                                          \
+  Register name(const Register &result, const Register &src);
 #define BINARY_DECL(name, ...)                                                 \
-  Register name(const Register &lhs, const Register &rhs);
+  Register name(const Register &lhs, const Register &rhs);                     \
+  Register name(const Register &result, const Register &lhs,                   \
+                const Register &rhs);
 
   FOREACH_UNARY_MACHINE_OP(UNARY_DECL);
   FOREACH_BINARY_MACHINE_OP(BINARY_DECL);

@@ -184,16 +184,21 @@ void Machine_Code::resolve_immediates() {
 
 #define DEFINE_UNARY_OP(name, ...)                                             \
   Register Machine_Code::name(const Register &src) {                           \
-    return add_instruction(                                                    \
-               Instruction{Op::name, {new_virtual_register(), src}})           \
+    return name(new_virtual_register(), src);                                  \
+  }                                                                            \
+  Register Machine_Code::name(const Register &result, const Register &src) {   \
+    return add_instruction(Instruction{Op::name, {result, src}})               \
         .set_registers()                                                       \
         .at(0);                                                                \
   }
 
 #define DEFINE_BINARY_OP(name, ...)                                            \
   Register Machine_Code::name(const Register &lhs, const Register &rhs) {      \
-    return add_instruction(                                                    \
-               Instruction{Op::name, {new_virtual_register(), lhs, rhs}})      \
+    return name(new_virtual_register(), lhs, rhs);                             \
+  }                                                                            \
+  Register Machine_Code::name(const Register &result, const Register &lhs,     \
+                              const Register &rhs) {                           \
+    return add_instruction(Instruction{Op::name, {result, lhs, rhs}})          \
         .set_registers()                                                       \
         .at(0);                                                                \
   }
