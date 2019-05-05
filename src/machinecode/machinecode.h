@@ -235,6 +235,8 @@ struct Machine_Code {
     return Register{Register::Kind::Virtual, next_virtual_register++};
   }
 
+  void allocate_registers();
+
 #define UNARY_DECL(name, ...)                                                  \
   Register name(const Register &src);                                          \
   Register name(const Register &result, const Register &src);

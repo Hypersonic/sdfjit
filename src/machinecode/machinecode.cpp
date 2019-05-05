@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "registerallocator.h"
+
 namespace sdfjit::machinecode {
 
 std::vector<Register> Instruction::set_registers() const {
@@ -191,6 +193,11 @@ void Machine_Code::resolve_immediates() {
       reg.memory_ref().offset = constant_offset;
     }
   }
+}
+
+void Machine_Code::allocate_registers() {
+  Linear_Scan_Register_Allocator lsra{};
+  lsra.allocate(*this);
 }
 
 #define DEFINE_UNARY_OP(name, ...)                                             \

@@ -7,8 +7,6 @@
 
 #include "machinecode/machinecode.h"
 
-#include "machinecode/registerallocator.h"
-
 int main() {
   sdfjit::ast::Ast ast{};
   auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
@@ -49,8 +47,7 @@ int main() {
   std::cout << mc.constants;
   std::cout << "=====================" << std::endl;
 
-  sdfjit::machinecode::Linear_Scan_Register_Allocator lsra{};
-  lsra.allocate(mc);
+  mc.allocate_registers();
 
   std::cout << "Machine Code (registers allocated):" << std::endl;
   std::cout << mc;
