@@ -81,12 +81,15 @@ struct Linear_Scan_Register_Allocator {
   // registers we can use for anything
   std::vector<Machine_Register> machine_registers{
       Machine_Register::ymm0, Machine_Register::ymm1, Machine_Register::ymm2,
-      Machine_Register::ymm3, Machine_Register::ymm4};
+      Machine_Register::ymm3, Machine_Register::ymm4, Machine_Register::ymm5,
+  };
   // reserved register for holding spilled values while being worked on
   // we need to reserve at least as many registers as the largest number of
   // parameters an instruction can take so we can load them all if needed
   std::vector<Machine_Register> temp_regs{
-      Machine_Register::ymm5, Machine_Register::ymm6, Machine_Register::ymm7};
+      Machine_Register::ymm6,
+      Machine_Register::ymm7,
+  };
 };
 
 } // namespace sdfjit::machinecode
