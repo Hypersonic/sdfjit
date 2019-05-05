@@ -80,22 +80,29 @@ void Linear_Scan_Register_Allocator::allocate(Machine_Code &mc) {
   };
   auto materialize_register_at = [&](Register reg, size_t instruction_idx) {
     auto alloc_reg = allocated_values.at(reg.virtual_reg());
+    auto &insn = mc.instructions[instruction_idx];
 
     if (alloc_reg.is_machine()) {
       // it's just a register, we can just put it in
-      mc.instructions[instruction_idx].replace_register(reg, alloc_reg);
+      insn.replace_register(reg, alloc_reg);
     } else {
       // it's a spilled register, so we need to insert a load from a temp reg
       // before and a store back after
       auto temp_reg = Register::Machine(temp_regs_available.back());
       temp_regs_available.pop_back();
 
-      // load to temp reg
-      insertion_set.before.movaps(instruction_idx, temp_reg, alloc_reg);
+      if (insn.uses(reg)) {
+        // load to temp reg
+        insertion_set.before.movaps(instruction_idx, temp_reg, alloc_reg);
+      }
+
+      if (insn.sets(reg)) {
+        // store from temp reg
+        insertion_set.after.movaps(instruction_idx, alloc_reg, temp_reg);
+      }
+
       // do op on temp reg
-      mc.instructions[instruction_idx].replace_register(reg, temp_reg);
-      // store from temp reg
-      insertion_set.after.movaps(instruction_idx, alloc_reg, temp_reg);
+      insn.replace_register(reg, temp_reg);
     }
   };
   auto assign_slot = [&](Register reg) -> Register {

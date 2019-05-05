@@ -200,6 +200,8 @@ struct Instruction {
 
   std::vector<Register> set_registers() const;
   std::vector<Register> used_registers() const;
+  bool sets(const Register &reg) const;
+  bool uses(const Register &reg) const;
   bool can_use_immediates() const;
 
   void replace_register(const Register &from, const Register &to) {

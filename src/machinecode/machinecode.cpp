@@ -1,5 +1,6 @@
 #include "machinecode.h"
 
+#include <algorithm>
 #include <unordered_map>
 
 namespace sdfjit::machinecode {
@@ -43,6 +44,16 @@ std::vector<Register> Instruction::used_registers() const {
   return result;
 
 #undef GET_SET_REGISTER_IDXES
+}
+
+bool Instruction::sets(const Register &reg) const {
+  auto set_regs = set_registers();
+  return std::find(set_regs.begin(), set_regs.end(), reg) != set_regs.end();
+}
+
+bool Instruction::uses(const Register &reg) const {
+  auto used_regs = used_registers();
+  return std::find(used_regs.begin(), used_regs.end(), reg) != used_regs.end();
 }
 
 bool Instruction::can_use_immediates() const {
