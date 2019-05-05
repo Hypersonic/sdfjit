@@ -90,15 +90,16 @@ void Linear_Scan_Register_Allocator::allocate(Machine_Code &mc) {
       // before and a store back after
       auto temp_reg = Register::Machine(temp_regs_available.back());
       temp_regs_available.pop_back();
+      std::cout << "using temp reg: " << temp_reg << std::endl;
 
       if (insn.uses(reg)) {
         // load to temp reg
-        insertion_set.before.movaps(instruction_idx, temp_reg, alloc_reg);
+        insertion_set.before.vmovaps(instruction_idx, temp_reg, alloc_reg);
       }
 
       if (insn.sets(reg)) {
         // store from temp reg
-        insertion_set.after.movaps(instruction_idx, alloc_reg, temp_reg);
+        insertion_set.after.vmovaps(instruction_idx, alloc_reg, temp_reg);
       }
 
       // do op on temp reg

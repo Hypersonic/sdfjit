@@ -82,7 +82,7 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
 
     switch (node.op) {
     case sdfjit::bytecode::Op::Load_Arg: {
-      auto result = mc.movaps(get_argument_register(node.arg_index));
+      auto result = mc.vmovaps(get_argument_register(node.arg_index));
       bc_to_reg[id] = result;
       break;
     }

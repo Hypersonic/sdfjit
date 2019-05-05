@@ -73,7 +73,7 @@ using Virtual_Register = size_t;
 
 #define FOREACH_UNARY_MACHINE_OP(macro) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movd, false) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movaps, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
 
