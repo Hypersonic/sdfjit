@@ -11,9 +11,16 @@ namespace sdfjit::machinecode {
 struct Assembler {
   Machine_Code &mc;
   std::vector<uint8_t> buffer{};
+  // offsets & lengths into the buffer for instructions
+  // this is mostly useful for dumping out assembled bytes
+  std::vector<std::pair<size_t, size_t>> instruction_offsets_and_sizes{};
 
   void assemble();
   void assemble_instruction(const Instruction &instruction);
+
+  void mark_instruction(size_t offset, size_t length) {
+    instruction_offsets_and_sizes.push_back({offset, length});
+  }
 
   void emit_byte(uint8_t val) { buffer.push_back(val); }
   void emit_word(uint16_t val) {

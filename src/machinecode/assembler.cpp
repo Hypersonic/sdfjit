@@ -1,6 +1,7 @@
 #include "assembler.h"
 
 #include "util/hexdump.h"
+#include "util/view.h"
 
 namespace sdfjit::machinecode {
 
@@ -14,10 +15,14 @@ void Assembler::assemble_instruction(const Instruction &instruction) {
 #define ASSEMBLE_OP(name, ...)                                                 \
   case Op::name: {                                                             \
     name(instruction);                                                         \
-    return;                                                                    \
+    break;                                                                     \
   };
 
+  size_t begin = buffer.size();
   switch (instruction.op) { FOREACH_MACHINE_OP(ASSEMBLE_OP); }
+  size_t end = buffer.size();
+
+  mark_instruction(begin, end - begin);
 }
 
 void Assembler::vminps(const Instruction &instruction) {
@@ -213,11 +218,30 @@ void Assembler::vpslld(const Instruction &instruction) {
 }
 
 void Assembler::vpsrld(const Instruction &instruction) {
-  (void)instruction; /* TODO */
+  auto dst = register_number(instruction.registers.at(0).machine_reg());
+  auto src = register_number(instruction.registers.at(1).machine_reg());
+  auto imm = instruction.registers.at(2).imm();
+
+  if (imm > 0xff) {
+    std::cerr << "Immediate to vpsrld is too large: " << imm << std::endl;
+    abort();
+  }
+
+  emit_byte(0xc5);
+  emit_byte(0x80 | ((~dst & 0xf) << 3) | 0x5);
+  emit_byte(0x72);
+  emit_byte(0xd0 | src);
+  emit_byte(imm);
 }
 
 std::ostream &operator<<(std::ostream &os, const Assembler &assembler) {
-  util::hexdump(os, assembler.buffer);
+  for (size_t i = 0; i < assembler.instruction_offsets_and_sizes.size(); i++) {
+    const auto &instruction = assembler.mc.instructions.at(i);
+    const auto [offset, size] = assembler.instruction_offsets_and_sizes.at(i);
+    auto view = util::vector_view<uint8_t>{assembler.buffer, offset, size};
+    os << instruction << std::endl;
+    util::hexdump(os, view);
+  }
   return os;
 }
 
