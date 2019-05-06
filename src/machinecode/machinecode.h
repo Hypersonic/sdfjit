@@ -18,14 +18,14 @@ using Virtual_Register = size_t;
 // TODO: find register numbers in docs, for now they're all 0
 // XXX: we'll probably want to break this up by register family (normal, xmms, ymms, etc)
 #define FOREACH_MACHINE_REGISTER(macro) \
-    macro(rbp, 0) \
-    macro(rsp, 0) \
-    macro(rdi, 0) \
-    macro(rsi, 0) \
-    macro(rdx, 0) \
-    macro(rcx, 0) \
-    macro(r8, 0) \
-    macro(r9, 0) \
+    macro(rcx, 1) \
+    macro(rdx, 2) \
+    macro(rsp, 4) \
+    macro(rbp, 5) \
+    macro(rsi, 6) \
+    macro(rdi, 7) \
+    macro(r8, 8) \
+    macro(r9, 9) \
     macro(xmm0, 0) \
     macro(xmm1, 0) \
     macro(xmm2, 0) \
@@ -43,13 +43,13 @@ using Virtual_Register = size_t;
     macro(xmm14, 0) \
     macro(xmm15, 0) \
     macro(ymm0, 0) \
-    macro(ymm1, 0) \
-    macro(ymm2, 0) \
-    macro(ymm3, 0) \
-    macro(ymm4, 0) \
-    macro(ymm5, 0) \
-    macro(ymm6, 0) \
-    macro(ymm7, 0)
+    macro(ymm1, 1) \
+    macro(ymm2, 2) \
+    macro(ymm3, 3) \
+    macro(ymm4, 4) \
+    macro(ymm5, 5) \
+    macro(ymm6, 6) \
+    macro(ymm7, 7)
 
 // macro(op_name, num_args, set_reg_idxs, used_reg_idxs, takes_imm)
 // TODO: all the ops
@@ -72,7 +72,6 @@ using Virtual_Register = size_t;
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps, false) \
 
 #define FOREACH_UNARY_MACHINE_OP(macro) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, movd, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
@@ -87,6 +86,8 @@ using Virtual_Register = size_t;
 #define MACHINE_REGISTER_ENUM(register_name, register_number) register_name,
 enum class Machine_Register { FOREACH_MACHINE_REGISTER(MACHINE_REGISTER_ENUM) };
 #undef MACHINE_REGISTER_ENUM
+
+uint64_t register_number(Machine_Register reg);
 
 #define MACHINE_OP_ENUM(op_name, ...) op_name,
 enum class Op { FOREACH_MACHINE_OP(MACHINE_OP_ENUM) };

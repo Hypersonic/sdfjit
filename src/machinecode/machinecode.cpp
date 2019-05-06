@@ -7,6 +7,15 @@
 
 namespace sdfjit::machinecode {
 
+uint64_t register_number(Machine_Register reg) {
+#define MACHINE_REGISTER_NUMBER(register_name, register_number)                \
+  case Machine_Register::register_name:                                        \
+    return register_number;
+
+  switch (reg) { FOREACH_MACHINE_REGISTER(MACHINE_REGISTER_NUMBER); }
+  abort();
+}
+
 std::vector<Register> Instruction::set_registers() const {
 #define GET_SET_REGISTER_IDXES(op_name, num_args, set_reg_idxes, ...)          \
   case Op::op_name: {                                                          \
