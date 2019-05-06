@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <unordered_map>
 
+#include "insertion_set.h"
 #include "registerallocator.h"
 
 namespace sdfjit::machinecode {
@@ -209,12 +210,46 @@ void Machine_Code::allocate_registers() {
   lsra.allocate(*this);
 }
 
+void Machine_Code::add_prologue_and_epilogue() {
+  Insertion_Set insertions{*this};
+
+  // prologue:
+  // push rbp
+  // mov rbp, rsp
+  // sub rsp, <stack_size>
+  insertions.before.push(0, Register::Machine(Machine_Register::rbp));
+  insertions.before.mov(0, Register::Machine(Machine_Register::rbp),
+                        Register::Machine(Machine_Register::rsp));
+  insertions.before.sub(0, Register::Machine(Machine_Register::rsp),
+                        Register::Imm(stack_info.current_offset));
+
+  // epilogue:
+  // add rsp, <stack_size>
+  // pop rbp
+  // ret
+  insertions.after.add(instructions.size() - 1,
+                       Register::Machine(Machine_Register::rsp),
+                       Register::Imm(stack_info.current_offset));
+  insertions.after.pop(instructions.size() - 1,
+                       Register::Machine(Machine_Register::rbp));
+  insertions.after.ret(instructions.size() - 1);
+
+  insertions.commit();
+}
+
 #define DEFINE_UNARY_OP(name, ...)                                             \
   Register Machine_Code::name(const Register &src) {                           \
     return name(new_virtual_register(), src);                                  \
   }                                                                            \
   Register Machine_Code::name(const Register &result, const Register &src) {   \
     return add_instruction(Instruction{Op::name, {result, src}})               \
+        .set_registers()                                                       \
+        .at(0);                                                                \
+  }
+
+#define DEFINE_X86_UNARY_OP(name, ...)                                         \
+  Register Machine_Code::name(const Register &val) {                           \
+    return add_instruction(Instruction{Op::name, {val}})                       \
         .set_registers()                                                       \
         .at(0);                                                                \
   }
@@ -231,6 +266,7 @@ void Machine_Code::allocate_registers() {
   }
 
 FOREACH_UNARY_MACHINE_OP(DEFINE_UNARY_OP);
+FOREACH_X86_UNARY_MACHINE_OP(DEFINE_X86_UNARY_OP);
 FOREACH_BINARY_MACHINE_OP(DEFINE_BINARY_OP);
 
 std::ostream &operator<<(std::ostream &os, Machine_Register reg) {

@@ -234,6 +234,98 @@ void Assembler::vpsrld(const Instruction &instruction) {
   emit_byte(imm);
 }
 
+void Assembler::pop(const Instruction &instruction) {
+  auto reg = register_number(instruction.registers.at(0).machine_reg());
+  emit_byte(0x58 | reg);
+}
+
+void Assembler::push(const Instruction &instruction) {
+  auto reg = register_number(instruction.registers.at(0).machine_reg());
+  emit_byte(0x50 | reg);
+}
+
+void Assembler::ret(const Instruction &instruction) {
+  (void)instruction;
+  emit_byte(0xc3);
+}
+
+void Assembler::add(const Instruction &instruction) {
+  auto dst = instruction.registers.at(0);
+  auto src = instruction.registers.at(1);
+
+  if (dst.is_machine() && src.is_immediate()) {
+    if (dst.machine_reg() != Machine_Register::rsp) {
+      // we only need this for rsp and I'd rather just fast-fail if we don't
+      // have that and deal with figuring out whether it encodes the same until
+      // then.
+      abort();
+    }
+
+    emit_byte(0x48);
+    auto imm = src.imm();
+    if (imm <= 0x7f) {
+      emit_byte(0x83);
+      emit_byte(0xc0 | register_number(dst.machine_reg()));
+      emit_byte(imm);
+    } else if (imm <= 0xffffffff) {
+      emit_byte(0x81);
+      emit_byte(0xc0 | register_number(dst.machine_reg()));
+      emit_dword(imm);
+    } else {
+      abort();
+    }
+  } else {
+    // we don't support other kinds right now because i am lazy
+    abort();
+  }
+}
+
+void Assembler::sub(const Instruction &instruction) {
+  auto dst = instruction.registers.at(0);
+  auto src = instruction.registers.at(1);
+
+  if (dst.is_machine() && src.is_immediate()) {
+    if (dst.machine_reg() != Machine_Register::rsp) {
+      // we only need this for rsp and I'd rather just fast-fail if we don't
+      // have that and deal with figuring out whether it encodes the same until
+      // then.
+      abort();
+    }
+
+    emit_byte(0x48);
+    auto imm = src.imm();
+    if (imm <= 0x7f) {
+      emit_byte(0x83);
+      emit_byte(0xe8 | register_number(dst.machine_reg()));
+      emit_byte(imm);
+    } else if (imm <= 0xffffffff) {
+      emit_byte(0x81);
+      emit_byte(0xe8 | register_number(dst.machine_reg()));
+      emit_dword(imm);
+    } else {
+      abort();
+    }
+  } else {
+    // we don't support other kinds right now because i am lazy
+    abort();
+  }
+}
+
+void Assembler::mov(const Instruction &instruction) {
+  auto dst = instruction.registers.at(0);
+  auto src = instruction.registers.at(1);
+
+  if (src.is_machine() && dst.is_machine()) {
+    emit_byte(0x48);
+    emit_byte(0x89);
+    emit_byte(0xc0 | (register_number(src.machine_reg()) << 3) |
+              register_number(dst.machine_reg()));
+  } else {
+    // we don't handle this right now
+    abort();
+  }
+}
+
 std::ostream &operator<<(std::ostream &os, const Assembler &assembler) {
   for (size_t i = 0; i < assembler.instruction_offsets_and_sizes.size(); i++) {
     const auto &instruction = assembler.mc.instructions.at(i);

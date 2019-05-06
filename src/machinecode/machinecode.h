@@ -18,6 +18,7 @@ using Virtual_Register = size_t;
 // TODO: find register numbers in docs, for now they're all 0
 // XXX: we'll probably want to break this up by register family (normal, xmms, ymms, etc)
 #define FOREACH_MACHINE_REGISTER(macro) \
+    macro(rax, 0) \
     macro(rcx, 1) \
     macro(rdx, 2) \
     macro(rsp, 4) \
@@ -27,21 +28,21 @@ using Virtual_Register = size_t;
     macro(r8, 8) \
     macro(r9, 9) \
     macro(xmm0, 0) \
-    macro(xmm1, 0) \
-    macro(xmm2, 0) \
-    macro(xmm3, 0) \
-    macro(xmm4, 0) \
-    macro(xmm5, 0) \
-    macro(xmm6, 0) \
-    macro(xmm7, 0) \
-    macro(xmm8, 0) \
-    macro(xmm9, 0) \
-    macro(xmm10, 0) \
-    macro(xmm11, 0) \
-    macro(xmm12, 0) \
-    macro(xmm13, 0) \
-    macro(xmm14, 0) \
-    macro(xmm15, 0) \
+    macro(xmm1, 1) \
+    macro(xmm2, 2) \
+    macro(xmm3, 3) \
+    macro(xmm4, 4) \
+    macro(xmm5, 5) \
+    macro(xmm6, 6) \
+    macro(xmm7, 7) \
+    macro(xmm8, 8) \
+    macro(xmm9, 9) \
+    macro(xmm10, 10) \
+    macro(xmm11, 11) \
+    macro(xmm12, 12) \
+    macro(xmm13, 13) \
+    macro(xmm14, 14) \
+    macro(xmm15, 15) \
     macro(ymm0, 0) \
     macro(ymm1, 1) \
     macro(ymm2, 2) \
@@ -59,8 +60,20 @@ using Virtual_Register = size_t;
 #define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
     macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2), takes_imm) \
 
+#define X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(0, 1), takes_imm)
+
 #define UNARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
     macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1), takes_imm) \
+
+#define X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 1, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(0), takes_imm)
+
+#define X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 1, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(), takes_imm)
+
+#define X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
+    macro(name, 0, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(), takes_imm)
 
 #define FOREACH_BINARY_MACHINE_OP(macro) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false) \
@@ -71,15 +84,35 @@ using Virtual_Register = size_t;
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps, false) \
 
+#define FOREACH_X86_BINARY_MACHINE_OP(macro) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, mov, true) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, add, true) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, sub, true) \
+
+#define FOREACH_X86_UNARY_IN_MACHINE_OP(macro) \
+    X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, push, false) \
+
+#define FOREACH_X86_UNARY_OUT_MACHINE_OP(macro) \
+    X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, pop, false) \
+
+#define FOREACH_X86_UNARY_MACHINE_OP(macro) \
+    FOREACH_X86_UNARY_IN_MACHINE_OP(macro) \
+    FOREACH_X86_UNARY_OUT_MACHINE_OP(macro) \
+
 #define FOREACH_UNARY_MACHINE_OP(macro) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
 
+#define FOREACH_X86_NULLARY_MACHINE_OP(macro) \
+   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, ret, false) \
 
 #define FOREACH_MACHINE_OP(macro) \
     FOREACH_UNARY_MACHINE_OP(macro) \
-    FOREACH_BINARY_MACHINE_OP(macro)
+    FOREACH_BINARY_MACHINE_OP(macro) \
+    FOREACH_X86_BINARY_MACHINE_OP(macro) \
+    FOREACH_X86_UNARY_MACHINE_OP(macro) \
+    FOREACH_X86_NULLARY_MACHINE_OP(macro)
 
 // clang-format on
 
@@ -237,19 +270,26 @@ struct Machine_Code {
   }
 
   void allocate_registers();
+  void add_prologue_and_epilogue();
 
 #define UNARY_DECL(name, ...)                                                  \
   Register name(const Register &src);                                          \
   Register name(const Register &result, const Register &src);
+#define X86_UNARY_DECL(name, ...) Register name(const Register &val);
 #define BINARY_DECL(name, ...)                                                 \
   Register name(const Register &lhs, const Register &rhs);                     \
   Register name(const Register &result, const Register &lhs,                   \
                 const Register &rhs);
+#define X86_NULLARY_DECL(name, ...) Register name();
 
   FOREACH_UNARY_MACHINE_OP(UNARY_DECL);
+  FOREACH_X86_UNARY_MACHINE_OP(X86_UNARY_DECL);
   FOREACH_BINARY_MACHINE_OP(BINARY_DECL);
+  FOREACH_X86_NULLARY_MACHINE_OP(X86_NULLARY_DECL);
 
+#undef X86_NULLARY_DECL
 #undef BINARY_DECL
+#undef X86_UNARY_DECL
 #undef UNARY_DECL
 };
 
