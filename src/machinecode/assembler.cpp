@@ -153,7 +153,13 @@ void Assembler::vbroadcastss(const Instruction &instruction) {
 }
 
 void Assembler::vsqrtps(const Instruction &instruction) {
-  (void)instruction; /*TODO*/
+  auto dst = register_number(instruction.registers.at(0).machine_reg());
+  auto src = register_number(instruction.registers.at(1).machine_reg());
+
+  emit_byte(0xc5);
+  emit_byte(0xfc);
+  emit_byte(0x51);
+  emit_byte(0xc0 | (dst << 3) | src);
 }
 
 void Assembler::vaddps(const Instruction &instruction) {
@@ -190,7 +196,20 @@ void Assembler::vmulps(const Instruction &instruction) {
 }
 
 void Assembler::vpslld(const Instruction &instruction) {
-  (void)instruction; /* TODO */
+  auto dst = register_number(instruction.registers.at(0).machine_reg());
+  auto src = register_number(instruction.registers.at(1).machine_reg());
+  auto imm = instruction.registers.at(2).imm();
+
+  if (imm > 0xff) {
+    std::cerr << "Immediate to vpslld is too large: " << imm << std::endl;
+    abort();
+  }
+
+  emit_byte(0xc5);
+  emit_byte(0x80 | ((~dst & 0xf) << 3) | 0x5);
+  emit_byte(0x72);
+  emit_byte(0xf0 | src);
+  emit_byte(imm);
 }
 
 void Assembler::vpsrld(const Instruction &instruction) {
