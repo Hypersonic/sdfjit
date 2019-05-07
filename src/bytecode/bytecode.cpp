@@ -228,11 +228,17 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
     }
   }
 
+  bc.store_result(ast_to_bc.at(ast.nodes.size() - 1));
+
   return bc;
 }
 
 Node_Id Bytecode::load_arg(size_t arg_idx) {
   return add_node(Node{Op::Load_Arg, {}, 0.0f, arg_idx});
+}
+
+Node_Id Bytecode::store_result(Node_Id value) {
+  return add_node(Node{Op::Store_Result, {value}});
 }
 
 Node_Id Bytecode::assign(Node_Id rhs) {

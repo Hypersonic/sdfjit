@@ -54,22 +54,49 @@ void Assembler::vmovaps(const Instruction &instruction) {
   Machine_Register reg;
   Memory_Reference mem;
 
-  emit_byte(0xc5);
-  emit_byte(0xfc);
+  enum class Move_Direction { Load, Store };
+  Move_Direction direction;
 
   if (lhs.is_machine() && rhs.is_memory()) {
     // vmovaps reg, [memory_location]
-    emit_byte(0x28);
+    direction = Move_Direction::Load;
     reg = lhs.machine_reg();
     mem = rhs.memory_ref();
   } else if (lhs.is_memory() && rhs.is_machine()) {
     // vmovaps [memory_location], reg
-    emit_byte(0x29);
+    direction = Move_Direction::Store;
     reg = rhs.machine_reg();
     mem = lhs.memory_ref();
   } else {
-    // ???
+    // we don't handle these right now
     abort();
+  }
+
+  auto mem_reg_num = register_number(mem.machine_reg());
+
+  // we need to use the B field to extend if our memory base reg number doesn't
+  // fit in 3 bits, meaning we need to use a 3-byte VEX prefix. otherwise, we
+  // can use a 2-byte VEX prefix, which is obviously a bit more compact.
+  if (mem_reg_num > 7) {
+    auto mem_reg_bit = ~(mem_reg_num >> 3) & 1;
+
+    emit_byte(0xc4);
+    emit_byte(0xc0 | (mem_reg_bit << 5) | 1);
+    emit_byte(0x7c); // XXX: do we have any need to compute this here?
+  } else {
+    emit_byte(0xc5);
+    emit_byte(0xfc);
+  }
+
+  switch (direction) {
+  case Move_Direction::Load: {
+    emit_byte(0x28);
+    break;
+  }
+  case Move_Direction::Store: {
+    emit_byte(0x29);
+    break;
+  }
   }
 
   // the encoding is the same for loads and stores

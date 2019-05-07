@@ -39,6 +39,7 @@ constexpr Node_Id IN_X = -1;
 constexpr Node_Id IN_Y = -2;
 constexpr Node_Id IN_Z = -3;
 constexpr Node_Id IN_CONSTANTS = -4;
+constexpr Node_Id OUT_PTR = -5;
 
 struct Ast;
 

@@ -12,6 +12,7 @@ namespace sdfjit::bytecode {
 // XXX: I'm basically adding ops here as I need them
 #define FOREACH_BC_OP(macro) \
     macro(Load_Arg) \
+    macro(Store_Result) \
     macro(Assign) \
     macro(Assign_Float) \
     macro(Add) \
@@ -59,6 +60,7 @@ struct Bytecode {
   static Bytecode from_ast(sdfjit::ast::Ast &ast);
 
   Node_Id load_arg(size_t arg_idx);
+  Node_Id store_result(Node_Id result);
   Node_Id assign(Node_Id rhs);
   Node_Id assign_float(float rhs);
   Node_Id add(Node_Id lhs, Node_Id rhs);

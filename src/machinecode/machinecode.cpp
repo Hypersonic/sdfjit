@@ -99,6 +99,14 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       break;
     }
 
+    case sdfjit::bytecode::Op::Store_Result: {
+      // XXX: this is written super poorly. Need to clean it up
+      auto result = Register::Memory(
+          get_argument_register(4).memory_ref().machine_reg(), 0);
+      mc.vmovaps(result, bc_to_reg.at(node.arguments.at(0)));
+      break;
+    }
+
     case sdfjit::bytecode::Op::Assign:
       abort(); // TODO
 
