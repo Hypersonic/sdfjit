@@ -4,6 +4,7 @@
 #include "ast/opt.h"
 #include "bytecode/bytecode.h"
 #include "machinecode/assembler.h"
+#include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
 #include "util/hexdump.h"
 
@@ -67,4 +68,9 @@ int main() {
   std::cout << "Hexdump of that:" << std::endl;
   sdfjit::util::hexdump(std::cout, assembler.buffer);
   std::cout << "=====================" << std::endl;
+
+  sdfjit::machinecode::Executor executor{mc};
+  executor.create();
+
+  executor.call(0, 0, 0, 0);
 }
