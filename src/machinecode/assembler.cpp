@@ -106,20 +106,18 @@ void Assembler::vmovaps(const Instruction &instruction) {
     // offsets of zero don't need an immediate
 
     // mod r/m:
-    emit_byte((register_number(reg) << 3) | register_number(mem.machine_reg()));
+    emit_byte((register_number(reg) << 3) | (mem_reg_num & 7));
     // SIB, only for some registers:
     // XXX: technically more than rsp are required, but we don't use them.
     //      Maybe eventually we want to support them
     if (mem.machine_reg() == Machine_Register::rsp) {
-      emit_byte((register_number(mem.machine_reg()) << 3) |
-                register_number(mem.machine_reg()));
+      emit_byte((register_number(mem.machine_reg()) << 3) | (mem_reg_num & 7));
     }
   } else if (mem.offset < 0x80) {
     // offsets of less than 0x80 can use a 1-byte immediate
 
     // mod r/m:
-    emit_byte(0x40 | (register_number(reg) << 3) |
-              register_number(mem.machine_reg()));
+    emit_byte(0x40 | (register_number(reg) << 3) | (mem_reg_num & 7));
 
     // SIB, only for some registers:
     // XXX: technically more than rsp are required, but we don't use them.
@@ -135,8 +133,7 @@ void Assembler::vmovaps(const Instruction &instruction) {
     // offsets in this range use a dword immediate
 
     // mod r/m:
-    emit_byte(0x80 | (register_number(reg) << 3) |
-              register_number(mem.machine_reg()));
+    emit_byte(0x80 | (register_number(reg) << 3) | (mem_reg_num & 7));
 
     // SIB, only for some registers:
     // XXX: technically more than rsp are required, but we don't use them.
@@ -230,7 +227,7 @@ void Assembler::vmulps(const Instruction &instruction) {
 void Assembler::vpslld(const Instruction &instruction) {
   auto dst = register_number(instruction.registers.at(0).machine_reg());
   auto src = register_number(instruction.registers.at(1).machine_reg());
-  auto imm = instruction.registers.at(2).imm();
+  auto imm = uint32_t(instruction.registers.at(2).imm());
 
   if (imm > 0xff) {
     std::cerr << "Immediate to vpslld is too large: " << imm << std::endl;
@@ -247,7 +244,7 @@ void Assembler::vpslld(const Instruction &instruction) {
 void Assembler::vpsrld(const Instruction &instruction) {
   auto dst = register_number(instruction.registers.at(0).machine_reg());
   auto src = register_number(instruction.registers.at(1).machine_reg());
-  auto imm = instruction.registers.at(2).imm();
+  auto imm = uint32_t(instruction.registers.at(2).imm());
 
   if (imm > 0xff) {
     std::cerr << "Immediate to vpsrld is too large: " << imm << std::endl;
@@ -289,7 +286,7 @@ void Assembler::add(const Instruction &instruction) {
     }
 
     emit_byte(0x48);
-    auto imm = src.imm();
+    auto imm = uint32_t(src.imm());
     if (imm <= 0x7f) {
       emit_byte(0x83);
       emit_byte(0xc0 | register_number(dst.machine_reg()));
@@ -320,12 +317,12 @@ void Assembler::sub(const Instruction &instruction) {
     }
 
     emit_byte(0x48);
-    auto imm = src.imm();
+    auto imm = uint32_t(src.imm());
     if (imm <= 0x7f) {
       emit_byte(0x83);
       emit_byte(0xe8 | register_number(dst.machine_reg()));
       emit_byte(imm);
-    } else if (imm <= 0xffffffff) {
+    } else if (uint32_t(imm) <= 0xffffffff) {
       emit_byte(0x81);
       emit_byte(0xe8 | register_number(dst.machine_reg()));
       emit_dword(imm);
@@ -336,6 +333,29 @@ void Assembler::sub(const Instruction &instruction) {
     // we don't support other kinds right now because i am lazy
     abort();
   }
+}
+
+void Assembler::and64(const Instruction &instruction) {
+  auto lhs = instruction.registers.at(0);
+  auto rhs = instruction.registers.at(1);
+
+  if (!lhs.is_machine() || !rhs.is_immediate()) {
+    std::cerr << "unsupported operands to and64, aborting" << std::endl;
+    abort();
+  }
+
+  auto reg = lhs.machine_reg();
+  auto imm = uint64_t(rhs.imm());
+
+  if (reg != Machine_Register::rsp || imm != 0xffffffffffffffe0) {
+    std::cerr << "unsupported operands to and64, aborting" << std::endl;
+    abort();
+  }
+
+  emit_byte(0x48);
+  emit_byte(0x83);
+  emit_byte(0xe4);
+  emit_byte(0xe0);
 }
 
 void Assembler::mov(const Instruction &instruction) {
@@ -359,7 +379,7 @@ std::ostream &operator<<(std::ostream &os, const Assembler &assembler) {
     const auto [offset, size] = assembler.instruction_offsets_and_sizes.at(i);
     auto view = util::vector_view<uint8_t>{assembler.buffer, offset, size};
     os << instruction << std::endl;
-    util::hexdump(os, view);
+    util::hexdump(os, view, offset);
   }
   return os;
 }

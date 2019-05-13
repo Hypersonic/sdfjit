@@ -5,7 +5,8 @@
 
 namespace sdfjit::util {
 
-template <typename T> void hexdump(std::ostream &os, T &vec) {
+template <typename T>
+void hexdump(std::ostream &os, T &vec, size_t dump_base_addr = 0) {
   static constexpr size_t num_cols = 8;
 
   os << std::hex;
@@ -14,7 +15,7 @@ template <typename T> void hexdump(std::ostream &os, T &vec) {
 
   for (size_t i = 0; i < vec.size(); i++) {
     if (i % num_cols == 0) {
-      os << std::setfill(' ') << std::setw(4) << i << ": ";
+      os << std::setfill(' ') << std::setw(4) << dump_base_addr + i << ": ";
     }
 
     os << std::setfill('0') << std::setw(2) << uint32_t(vec.data()[i]);

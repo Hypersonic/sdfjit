@@ -6,22 +6,10 @@
 #include "machinecode/assembler.h"
 #include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
+#include "raytracer/raytracer.h"
 #include "util/hexdump.h"
 
-int main() {
-  sdfjit::ast::Ast ast{};
-  auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
-                      sdfjit::ast::IN_Z); // x, y, z input parameters.
-
-  auto merged =
-      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
-              ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
-
-  merged = ast.add(merged, ast.box(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                   20.0f, 20.0f, 20.0f));
-
-  sdfjit::ast::opt::optimize(ast);
-
+void dump_all_parts(sdfjit::ast::Ast &ast) {
   std::cout << "AST (sexpr):" << std::endl;
   ast.dump_sexpr(std::cout);
   std::cout << "=====================" << std::endl;
@@ -71,6 +59,33 @@ int main() {
 
   sdfjit::machinecode::Executor executor{mc};
   executor.create();
+}
 
-  executor.call(0, 0, 0, 0);
+int main() {
+  sdfjit::ast::Ast ast{};
+  auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
+                      sdfjit::ast::IN_Z); // x, y, z input parameters.
+
+  pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
+
+  auto merged =
+      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
+              ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
+
+  merged = ast.add(merged, ast.box(ast.translate(pos, -60.0f, -60.0f, -60.0f),
+                                   20.0f, 20.0f, 20.0f));
+
+  sdfjit::ast::opt::optimize(ast);
+
+  dump_all_parts(ast);
+
+  auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
+
+  std::cout << "Exec page @ " << std::hex << rt.exec.code << std::dec
+            << std::endl;
+
+  for (float i = -50; i < 50; i++) {
+    uint32_t *screen = (uint32_t *)malloc(320 * 240 * sizeof(uint32_t));
+    rt.trace_image(0, 0, i, 0, 0, 0, 320, 240, screen);
+  }
 }

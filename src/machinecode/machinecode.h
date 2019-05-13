@@ -88,6 +88,7 @@ using Virtual_Register = size_t;
     X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, mov, true) \
     X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, add, true) \
     X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, sub, true) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, and64, true) \
 
 #define FOREACH_X86_UNARY_IN_MACHINE_OP(macro) \
     X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, push, false) \
@@ -159,7 +160,21 @@ struct Memory_Reference {
   }
 };
 
-using Immediate_Value = uint32_t;
+struct Immediate_Value {
+  uint64_t value;
+
+  Immediate_Value(uint64_t val) : value(val) {}
+  Immediate_Value(uint32_t val) : value(uint64_t(val)) {}
+  Immediate_Value(float val) : value(uint64_t(util::float_to_bits(val))) {}
+
+  operator uint64_t() const { return value; }
+  operator uint32_t() const { return uint32_t(value); }
+  operator float() const { return float(util::bits_to_float(uint32_t(value))); }
+
+  bool operator==(const Immediate_Value other) const {
+    return value == other.value;
+  }
+};
 
 struct Register {
   // virtual   = has not been assigned a concrete register
@@ -183,9 +198,15 @@ struct Register {
     return {Kind::Memory,
             Memory_Reference{Memory_Reference::Kind::Machine, base, index}};
   }
-  static Register Imm(uint32_t imm) { return {Kind::Immediate, imm}; }
+  static Register Imm(unsigned long long imm) {
+    return {Kind::Immediate, Immediate_Value(uint64_t(imm))};
+  }
+  static Register Imm(uint64_t imm) { return {Kind::Immediate, imm}; }
+  static Register Imm(uint32_t imm) {
+    return {Kind::Immediate, Immediate_Value(imm)};
+  }
   static Register Imm(float imm) {
-    return {Kind::Immediate, util::float_to_bits(imm)};
+    return {Kind::Immediate, Immediate_Value(util::float_to_bits(imm))};
   }
 
   bool is_virtual() const { return kind == Kind::Virtual; }
@@ -295,6 +316,7 @@ struct Machine_Code {
 
 std::ostream &operator<<(std::ostream &os, const Machine_Register reg);
 std::ostream &operator<<(std::ostream &os, const Memory_Reference mem);
+std::ostream &operator<<(std::ostream &os, const Immediate_Value imm);
 std::ostream &operator<<(std::ostream &os, const Op op);
 std::ostream &operator<<(std::ostream &os, const Register reg);
 std::ostream &operator<<(std::ostream &os, const Instruction &insn);

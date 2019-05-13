@@ -6,7 +6,7 @@ RELEXT  = -release
 
 .PHONY: all clean
 
-CXXFLAGS  += -fPIC -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -Wshadow -Wcast-align -Wunreachable-code -Wunused-variable -std=c++17 -Isrc/
+CXXFLAGS  += -march=native -fPIC -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -Wshadow -Wcast-align -Wunreachable-code -Wunused-variable -std=c++17 -Isrc/
 
 LDFLAGS += $(shell pkg-config --cflags sdl2)
 
@@ -36,14 +36,14 @@ DIRS = $(sort $(dir $(OBJS)))
 
 ifdef DEBUG
 	BNRY := $(BNRY)$(DEVEXT)
-	CXXFLAGS += -O1 -g -DDEBUG_MODE
+	CXXFLAGS += -O1 -g -DDEBUG_MODE -fsanitize=undefined -fsanitize=address
 	MODE = debug
 else ifdef RELEASE
 	BNRY := $(BNRY)$(RELEXT)
 	CXXFLAGS += -DRELEASE -O3 -flto
 	MODE = release
 else
-	CXXFLAGS += -O3
+	CXXFLAGS += -O3 -g
 	MODE = devel
 endif
 

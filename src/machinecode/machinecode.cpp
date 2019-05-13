@@ -201,7 +201,7 @@ void Machine_Code::resolve_immediates() {
         continue;
 
       // add constant to the pool
-      size_t constant_offset = constants.add(reg.imm());
+      size_t constant_offset = constants.add(uint32_t(reg.imm()));
 
       // update the register to be a memory reference
       // XXX: do we want to make an api to make this much cleaner?
@@ -225,19 +225,22 @@ void Machine_Code::add_prologue_and_epilogue() {
   // push rbp
   // mov rbp, rsp
   // sub rsp, <stack_size>
+  // and rsp, 0xffffffffffffffe0
   insertions.before.push(0, Register::Machine(Machine_Register::rbp));
   insertions.before.mov(0, Register::Machine(Machine_Register::rbp),
                         Register::Machine(Machine_Register::rsp));
   insertions.before.sub(0, Register::Machine(Machine_Register::rsp),
                         Register::Imm(stack_info.current_offset));
+  insertions.before.and64(0, Register::Machine(Machine_Register::rsp),
+                          Register::Imm(0xffffffffffffffe0ull));
 
   // epilogue:
-  // add rsp, <stack_size>
+  // mov rsp, rbp
   // pop rbp
   // ret
-  insertions.after.add(instructions.size() - 1,
+  insertions.after.mov(instructions.size() - 1,
                        Register::Machine(Machine_Register::rsp),
-                       Register::Imm(stack_info.current_offset));
+                       Register::Machine(Machine_Register::rbp));
   insertions.after.pop(instructions.size() - 1,
                        Register::Machine(Machine_Register::rbp));
   insertions.after.ret(instructions.size() - 1);
@@ -302,6 +305,10 @@ std::ostream &operator<<(std::ostream &os, const Memory_Reference mem) {
     return os << '[' << mem.machine_reg() << " + " << mem.offset << ']';
   }
   abort();
+}
+
+std::ostream &operator<<(std::ostream &os, const Immediate_Value imm) {
+  return os << uint64_t(imm);
 }
 
 std::ostream &operator<<(std::ostream &os, const Register reg) {

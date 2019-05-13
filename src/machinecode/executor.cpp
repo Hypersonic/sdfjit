@@ -39,7 +39,7 @@ void Executor::create() {
   finalize_region(constants, constants_length, PROT_READ);
 }
 
-void Executor::call(void *xs, void *ys, void *zs, void *results) {
+void Executor::call(void *xs, void *ys, void *zs, void *results) const {
   Executor::Function_Type *func =
       reinterpret_cast<Executor::Function_Type *>(code);
   func(xs, ys, zs, constants, results);

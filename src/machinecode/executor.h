@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <sys/mman.h>
 
 namespace sdfjit::machinecode {
 
@@ -15,8 +16,17 @@ struct Executor {
   using Function_Type = void(void *xs, void *ys, void *zs, void *constants,
                              void *results);
 
+  ~Executor() {
+    if (code) {
+      munmap(code, code_length);
+    }
+    if (constants) {
+      munmap(constants, constants_length);
+    }
+  }
+
   void create();
-  void call(void *xs, void *ys, void *zs, void *results);
+  void call(void *xs, void *ys, void *zs, void *results) const;
 };
 
 } // namespace sdfjit::machinecode
