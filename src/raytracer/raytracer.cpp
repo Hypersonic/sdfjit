@@ -8,6 +8,7 @@
 
 #include "bytecode/bytecode.h"
 #include "machinecode/machinecode.h"
+#include "util/macros.h"
 
 namespace sdfjit::raytracer {
 
@@ -78,15 +79,20 @@ bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
     auto high_mask = _mm256_cmp_ps(dist, upper_bound, _CMP_LT_OS);
     auto op_mask = _mm256_and_ps(low_mask, high_mask);
 
+    if (UNLIKELY(!_mm256_testz_ps(op_mask, op_mask))) {
+      not_done = true;
+    } else {
+      // doing this operation would be a waste anyways, dont spend cycles on
+      // it.
+      // XXX: is this better than just letting it do the op or not?
+      continue;
+    }
+
     dist = _mm256_add_ps(dist, epsilon);
 
     advance(xs, dxs, dist, op_mask, offset);
     advance(ys, dys, dist, op_mask, offset);
     advance(zs, dzs, dist, op_mask, offset);
-
-    if (!_mm256_testz_ps(op_mask, op_mask)) {
-      not_done = true;
-    }
   }
 
 #endif
