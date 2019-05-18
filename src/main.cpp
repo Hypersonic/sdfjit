@@ -77,15 +77,15 @@ int main() {
 
   sdfjit::ast::opt::optimize(ast);
 
-  dump_all_parts(ast);
+  // dump_all_parts(ast);
 
   auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
 
   std::cout << "Exec page @ " << std::hex << rt.exec.code << std::dec
             << std::endl;
 
-  for (float i = -50; i < 50; i++) {
-    uint32_t *screen = (uint32_t *)malloc(320 * 240 * sizeof(uint32_t));
-    rt.trace_image(0, 0, i, 0, 0, 0, 320, 240, screen);
-  }
+  auto width = 320;
+  auto height = 240;
+  uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
+  rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
 }

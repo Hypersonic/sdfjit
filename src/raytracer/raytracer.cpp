@@ -3,8 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-
-#include <iostream>
+#include <immintrin.h>
+#include <iomanip>
 
 #include "bytecode/bytecode.h"
 #include "machinecode/machinecode.h"
@@ -31,13 +31,15 @@ bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
 
   // get distances
   for (size_t offset = 0; offset < count; offset += 8) {
-    exec.call(xs + offset, ys + offset, zs + offset, distances + offset);
+    exec.call(&xs[offset], &ys[offset], &zs[offset], &distances[offset]);
   }
 
-  // update positions
-  // XXX: need to refactor this (maybe with a writemask) so it's vectorized
-  //      (or maybe just hand-vectorize it...)
+  // update positions:
+
   bool not_done = false;
+
+#if 0
+  // unvectorized:
   for (size_t offset = 0; offset < count; offset++) {
     if (0 < distances[offset] && distances[offset] < MAX_DIST) {
       not_done = true;
@@ -47,6 +49,48 @@ bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
       zs[offset] += dzs[offset] * dist;
     }
   }
+
+#else
+
+  // vectorized:
+  // this whole thing would be much easier if we could use the AVX512
+  // writemasked operations, but this project is all AVX256 for now
+  // upper/lower bounds on all lanes:
+  auto lower_bound = _mm256_setzero_ps();
+  auto upper_bound = _mm256_set1_ps(MAX_DIST);
+  auto epsilon = _mm256_set1_ps(0.1f);
+
+  auto advance = [](float *__restrict ps, float *__restrict dps, __m256 dist,
+                    __m256 op_mask, size_t off) {
+    const auto p = _mm256_load_ps(&ps[off]);
+    const auto dp = _mm256_load_ps(&dps[off]);
+    const auto retained_p = _mm256_andnot_ps(op_mask, p);
+    const auto new_p = _mm256_fmadd_ps(dist, dp, p);
+    const auto changed_p = _mm256_and_ps(op_mask, new_p);
+    const auto result_p = _mm256_or_ps(changed_p, retained_p);
+    _mm256_store_ps(&ps[off], result_p);
+  };
+
+  for (size_t offset = 0; offset < count; offset += 8) {
+    auto dist = _mm256_load_ps(&distances[offset]);
+
+    auto low_mask = _mm256_cmp_ps(lower_bound, dist, _CMP_LT_OS);
+    auto high_mask = _mm256_cmp_ps(dist, upper_bound, _CMP_LT_OS);
+    auto op_mask = _mm256_and_ps(low_mask, high_mask);
+
+    dist = _mm256_add_ps(dist, epsilon);
+
+    advance(xs, dxs, dist, op_mask, offset);
+    advance(ys, dys, dist, op_mask, offset);
+    advance(zs, dzs, dist, op_mask, offset);
+
+    if (!_mm256_testz_ps(op_mask, op_mask)) {
+      not_done = true;
+    }
+  }
+
+#endif
+
   return not_done;
 }
 
@@ -104,6 +148,20 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
 
   while (one_round(width, height, xs, ys, zs, dxs, dys, dzs, distances))
     ;
+
+  for (size_t y = 0; y < height; y++) {
+    for (size_t x = 0; x < width; x++) {
+      size_t offset = y * width + x;
+
+      if (distances[offset] <= 0) {
+        putchar('*');
+      } else {
+        putchar(' ');
+      }
+      // std::cout << std::setw(12) << distances[offset] << ' ';
+    }
+    putchar('\n');
+  }
 
   // TODO: fill in screen
   memset(screen, 0, count);
