@@ -14,8 +14,6 @@ void peephole_eliminate_movs(Machine_Code &mc) {
     auto insn1_dst = insn1.registers.at(0);
     auto insn2_src = insn2.registers.at(1);
     if (insn1_dst.is_memory() && insn1_dst == insn2_src) {
-      std::cout << "Merging: " << insn1 << " with " << insn2;
-
       // sadly, we can't get rid of the store (insn1), because later
       // instructions might depend on it.
       // Maybe it's worth doing a pass here to see if we can kill it, but i'm
@@ -27,8 +25,6 @@ void peephole_eliminate_movs(Machine_Code &mc) {
       if (insn2.registers[0] == insn2.registers[1]) {
         insn2.convert_to_nop();
       }
-
-      std::cout << " into: " << insn1 << " -- " << insn2 << std::endl;
     }
   }
 }

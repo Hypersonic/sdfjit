@@ -1,6 +1,7 @@
 #include "machinecode.h"
 
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 
 #include "insertion_set.h"
@@ -167,8 +168,12 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       break;
     }
 
-    case sdfjit::bytecode::Op::Negate:
-      abort(); // TODO
+    case sdfjit::bytecode::Op::Negate: {
+      auto val = bc_to_reg.at(node.arguments.at(0));
+      auto result = mc.vsubps(mc.vbroadcastss(Register::Imm(-1.0f)), val);
+      bc_to_reg[id] = result;
+      break;
+    }
 
     case sdfjit::bytecode::Op::Min: {
       auto lhs = bc_to_reg.at(node.arguments.at(0));
@@ -182,6 +187,50 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       auto lhs = bc_to_reg.at(node.arguments.at(0));
       auto rhs = bc_to_reg.at(node.arguments.at(1));
       auto result = mc.vmaxps(lhs, rhs);
+      bc_to_reg[id] = result;
+      break;
+    }
+
+    case sdfjit::bytecode::Op::Sin: {
+      /* we compute sin with Bhaskara I's formula, see
+       * https://en.wikipedia.org/wiki/Bhaskara_I%27s_sine_approximation_formula
+       * this isn't *super* accurate, but it's probably good enough for now,
+       * and it doesn't take very many instructions to compute
+       *
+       * sin(x) = (16 * x * (pi - x)) / (5 * pi^2 - 4 * x * (pi - x))
+       */
+      auto x = bc_to_reg.at(node.arguments.at(0));
+      auto pi = mc.vbroadcastss(Register::Imm(float(M_PI)));
+      auto five_time_pi_squared =
+          mc.vbroadcastss(Register::Imm(float(5 * M_PI * M_PI)));
+      auto pi_minus_x = mc.vsubps(pi, x);
+      auto four = mc.vbroadcastss(Register::Imm(4.0f));
+      auto four_time_x_times_pi_minus_x =
+          mc.vmulps(four, mc.vmulps(x, pi_minus_x));
+
+      auto numerator = mc.vmulps(four, four_time_x_times_pi_minus_x);
+      auto denominator =
+          mc.vsubps(five_time_pi_squared, four_time_x_times_pi_minus_x);
+      auto result = mc.vdivps(numerator, denominator);
+
+      bc_to_reg[id] = result;
+      break;
+    }
+
+    case sdfjit::bytecode::Op::Cos: {
+      /* Just like sin, we're using Bhaskara I's approximation.
+       *
+       * cos(x) = (pi^2 - 4 * x^2) / (pi^2 + x^2)
+       */
+      auto x = bc_to_reg.at(node.arguments.at(0));
+      auto pi_squared = mc.vbroadcastss(Register::Imm(float(M_PI * M_PI)));
+      auto x_squared = mc.vmulps(x, x);
+      auto four = mc.vbroadcastss(Register::Imm(4.0f));
+
+      auto numerator = mc.vsubps(pi_squared, mc.vmulps(four, x_squared));
+      auto denominator = mc.vaddps(pi_squared, x_squared);
+      auto result = mc.vdivps(numerator, denominator);
+
       bc_to_reg[id] = result;
       break;
     }
@@ -203,9 +252,13 @@ void Machine_Code::resolve_immediates() {
       // add constant to the pool
       size_t constant_offset = constants.add(uint32_t(reg.imm()));
 
-      // update the register to be a memory reference
-      // XXX: do we want to make an api to make this much cleaner?
-      //      if we find ourselves rewriting registers a lot it might be good...
+      // update the register to be a memory
+      // reference
+      // XXX: do we want to make an api to
+      // make this much cleaner?
+      //      if we find ourselves rewriting
+      //      registers a lot it might be
+      //      good...
       reg.kind = Register::Kind::Memory;
       reg.reg = get_argument_register(constant_pool_arg_index).reg;
       reg.memory_ref().offset = constant_offset;

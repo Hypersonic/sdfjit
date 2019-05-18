@@ -161,21 +161,13 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     for (size_t x = 0; x < width; x++) {
       size_t offset = y * width + x;
 
-#if 1
       if (distances[offset] <= 0) {
-        putchar('*');
+        screen[offset] = 0x00ffffff;
       } else {
-        putchar(' ');
+        screen[offset] = 0x00000000;
       }
-#else
-      std::cout << std::setw(12) << distances[offset] << ' ';
-#endif
     }
-    putchar('\n');
   }
-
-  // TODO: fill in screen
-  memset(screen, 0, count);
 
   free(xs);
   free(ys);

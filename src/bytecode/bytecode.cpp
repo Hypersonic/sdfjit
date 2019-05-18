@@ -194,7 +194,87 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
     }
 
     case sdfjit::ast::Op::Rotate: {
-      abort(); // TODO: implement
+      auto position = ast_results.at(node.children.at(0));
+      auto x = position.at(0);
+      auto y = position.at(1);
+      auto z = position.at(2);
+
+      auto rotate = ast_results.at(node.children.at(1));
+      auto rx = rotate.at(0);
+      auto ry = rotate.at(1);
+      auto rz = rotate.at(2);
+
+      /* Quick reminder on rotation matrices:
+       *
+       *      [ 1    0     0   ]
+       * Rx = [ 0    cos  -sin ]
+       *      [ 0    sin   cos ]
+       *
+       *      [ cos  0     sin ]
+       * Ry = [ 0    1     0   ]
+       *      [-sin  0     cos ]
+       *
+       *      [ cos -sin   0   ]
+       * Rz = [ sin  cos   0   ]
+       *      [ 0    0     1   ]
+       *
+       *
+       * TODO: expand this matrix out completely to do fewer ops
+       */
+
+      auto sinrx = bc.sin(rx);
+      auto cosrx = bc.cos(rx);
+      auto sinry = bc.sin(ry);
+      auto cosry = bc.cos(ry);
+      auto sinrz = bc.sin(rz);
+      auto cosrz = bc.cos(rz);
+
+      // rotate about x:
+      // x' = x
+      // y' = y * cos(t) - z * sin(t)
+      // z' = y * sin(t) + z * cos(t)
+      {
+        auto x_prime = x;
+        auto y_prime =
+            bc.subtract(bc.multiply(y, cosrx), bc.multiply(z, sinrx));
+        auto z_prime = bc.add(bc.multiply(y, sinrx), bc.multiply(z, cosrx));
+
+        x = x_prime;
+        y = y_prime;
+        z = z_prime;
+      }
+
+      // rotate about y:
+      // x' = x * cos(t) + z * sin(t)
+      // y' = y
+      // z' = x * -cos(t) + z * cos(t)
+      {
+        auto x_prime = bc.add(bc.multiply(x, cosry), bc.multiply(z, sinry));
+        auto y_prime = y;
+        auto z_prime =
+            bc.add(bc.multiply(x, bc.negate(cosry)), bc.multiply(z, cosry));
+
+        x = x_prime;
+        y = y_prime;
+        z = z_prime;
+      }
+
+      // rotate about z:
+      // x' = x * cos(t) - y * sin(t)
+      // y' = x * sin(t) + y * cos(t)
+      // z' = z
+      {
+        auto x_prime =
+            bc.subtract(bc.multiply(x, cosrz), bc.multiply(y, sinrz));
+        auto y_prime = bc.add(bc.multiply(x, sinrz), bc.multiply(y, cosrz));
+        auto z_prime = z;
+
+        x = x_prime;
+        y = y_prime;
+        z = z_prime;
+      }
+
+      ast_results[i] = {x, y, z};
       break;
     }
 
@@ -288,5 +368,9 @@ Node_Id Bytecode::min(Node_Id lhs, Node_Id rhs) {
 Node_Id Bytecode::max(Node_Id lhs, Node_Id rhs) {
   return add_node(Node{Op::Max, {lhs, rhs}});
 }
+
+Node_Id Bytecode::sin(Node_Id val) { return add_node(Node{Op::Sin, {val}}); }
+
+Node_Id Bytecode::cos(Node_Id val) { return add_node(Node{Op::Cos, {val}}); }
 
 } // namespace sdfjit::bytecode

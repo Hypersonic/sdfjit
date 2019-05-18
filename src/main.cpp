@@ -1,3 +1,5 @@
+#include <cmath>
+#include <fstream>
 #include <iostream>
 
 #include "ast/ast.h"
@@ -70,6 +72,54 @@ void dump_all_parts(sdfjit::ast::Ast &ast) {
   executor.create();
 }
 
+void fuck_me_up_fam() {
+  size_t width = 320;
+  size_t height = 240;
+  uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
+
+  auto rgb = [](uint32_t val) -> std::tuple<int, int, int> {
+    return {int((val & 0xff0000) >> 16), int((val & 0xff00) >> 8),
+            int(val & 0xff)};
+  };
+
+  for (size_t t = 0; t < 300; t++) {
+    sdfjit::ast::Ast ast{};
+    auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
+                        sdfjit::ast::IN_Z); // x, y, z input parameters.
+
+    pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
+
+    auto merged =
+        ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
+                ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
+
+    merged = ast.add(
+        merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
+                                   fmodf(t / 10.0f, M_PI), 0.0f, 0.0f),
+                        20.0f, 20.0f, 20.0f));
+
+    sdfjit::ast::opt::optimize(ast);
+
+    auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
+    rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
+
+    std::fstream out("frames/out" + std::to_string(t) + ".ppm",
+                     std::fstream::out);
+    out << "P3\n" << width << " " << height << "\n255\n";
+    for (size_t y = 0; y < height; y++) {
+      for (size_t x = 0; x < width; x++) {
+        size_t offset = y * width + x;
+        auto [r, g, b] = rgb(screen[offset]);
+        out << r << " " << g << " " << b << " ";
+      }
+      out << "\n";
+    }
+    out.close();
+
+    std::cout << "done with frame " << t << std::endl;
+  }
+}
+
 int main() {
   sdfjit::ast::Ast ast{};
   auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
@@ -90,12 +140,10 @@ int main() {
 
   auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
 
-  std::cout << "Exec page @ " << std::hex << rt.exec.code << std::dec
-            << std::endl;
-
-  std::cout << "Crappy ascii rendering:" << std::endl;
-  auto width = 128;
-  auto height = 96;
+  auto width = 320;
+  auto height = 240;
   uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
   rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
+
+  fuck_me_up_fam();
 }
