@@ -6,6 +6,7 @@
 #include "machinecode/assembler.h"
 #include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
+#include "machinecode/opt.h"
 #include "raytracer/raytracer.h"
 #include "util/hexdump.h"
 
@@ -48,8 +49,16 @@ void dump_all_parts(sdfjit::ast::Ast &ast) {
   std::cout << mc.constants;
   std::cout << "=====================" << std::endl;
 
+  std::cout << "Machine Code (late optimizations applied):" << std::endl;
+  sdfjit::machinecode::optimize(mc);
+  std::cout << mc;
+  std::cout << "Constant Pool:" << std::endl;
+  std::cout << mc.constants;
+  std::cout << "=====================" << std::endl;
+
   sdfjit::machinecode::Assembler assembler{mc};
   assembler.assemble();
+
   std::cout << "Asssembled instructions (" << assembler.buffer.size()
             << " bytes):" << std::endl;
   std::cout << assembler;
@@ -84,8 +93,9 @@ int main() {
   std::cout << "Exec page @ " << std::hex << rt.exec.code << std::dec
             << std::endl;
 
-  auto width = 320;
-  auto height = 240;
+  std::cout << "Crappy ascii rendering:" << std::endl;
+  auto width = 128;
+  auto height = 96;
   uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
   rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
 }

@@ -67,8 +67,18 @@ void Assembler::vmovaps(const Instruction &instruction) {
     direction = Move_Direction::Store;
     reg = rhs.machine_reg();
     mem = lhs.memory_ref();
+  } else if (lhs.is_machine() && rhs.is_machine()) {
+    // vmovaps reg, reg
+    // we handle this all directly in here, since it's simple
+    emit_byte(0xc5);
+    emit_byte(0xfc);
+    emit_byte(0x28);
+    emit_byte(0xc0 | (register_number(lhs.machine_reg()) << 3) |
+              register_number(rhs.machine_reg()));
+    return;
   } else {
     // we don't handle these right now
+    std::cerr << "Unhandled kind of access pair in vmovaps" << std::endl;
     abort();
   }
 
@@ -287,6 +297,13 @@ void Assembler::pop(const Instruction &instruction) {
 void Assembler::push(const Instruction &instruction) {
   auto reg = register_number(instruction.registers.at(0).machine_reg());
   emit_byte(0x50 | reg);
+}
+
+void Assembler::nop(const Instruction &instruction) {
+  (void)instruction;
+  // right now we just quietly choose not to emit nops, so we don't have to do
+  // an elimination pass. This seems fine, but maybe there's a chance we'll want
+  // to pad stuff out with nops later...
 }
 
 void Assembler::ret(const Instruction &instruction) {

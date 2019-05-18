@@ -8,6 +8,7 @@
 
 #include "bytecode/bytecode.h"
 #include "machinecode/machinecode.h"
+#include "machinecode/opt.h"
 #include "util/macros.h"
 
 namespace sdfjit::raytracer {
@@ -18,6 +19,7 @@ Raytracer Raytracer::from_ast(sdfjit::ast::Ast &ast) {
   mc.resolve_immediates();
   mc.allocate_registers();
   mc.add_prologue_and_epilogue();
+  machinecode::optimize(mc);
   Raytracer rt{{mc}};
   rt.exec.create();
   return rt;

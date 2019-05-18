@@ -108,6 +108,7 @@ using Virtual_Register = size_t;
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vrsqrtps, false) \
 
 #define FOREACH_X86_NULLARY_MACHINE_OP(macro) \
+   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, nop, false) \
    X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, ret, false) \
 
 #define FOREACH_MACHINE_OP(macro) \
@@ -155,7 +156,7 @@ struct Memory_Reference {
     case Kind::Virtual:
       return virtual_reg() == rhs.virtual_reg();
     case Kind::Machine:
-      return machine_reg() == rhs.machine_reg();
+      return machine_reg() == rhs.machine_reg() && offset == rhs.offset;
     default:
       abort();
     }
@@ -269,6 +270,11 @@ struct Instruction {
         registers[i] = to;
       }
     }
+  }
+
+  void convert_to_nop() {
+    op = Op::nop;
+    registers.clear();
   }
 };
 
