@@ -159,12 +159,15 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     for (size_t x = 0; x < width; x++) {
       size_t offset = y * width + x;
 
+#if 1
       if (distances[offset] <= 0) {
         putchar('*');
       } else {
         putchar(' ');
       }
-      // std::cout << std::setw(12) << distances[offset] << ' ';
+#else
+      std::cout << std::setw(12) << distances[offset] << ' ';
+#endif
     }
     putchar('\n');
   }

@@ -79,6 +79,7 @@ using Virtual_Register = size_t;
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps, false) \
@@ -104,6 +105,7 @@ using Virtual_Register = size_t;
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
     UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vrsqrtps, false) \
 
 #define FOREACH_X86_NULLARY_MACHINE_OP(macro) \
    X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, ret, false) \
