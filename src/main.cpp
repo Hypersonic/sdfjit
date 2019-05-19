@@ -1,6 +1,8 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "ast/ast.h"
 #include "ast/opt.h"
@@ -72,7 +74,7 @@ void dump_all_parts(sdfjit::ast::Ast &ast) {
   executor.create();
 }
 
-void fuck_me_up_fam() {
+void render_animation() {
   size_t width = 320;
   size_t height = 240;
   uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
@@ -81,6 +83,8 @@ void fuck_me_up_fam() {
     return {int((val & 0xff0000) >> 16), int((val & 0xff00) >> 8),
             int(val & 0xff)};
   };
+
+  mkdir("frames", 0666);
 
   for (size_t t = 0; t < 300; t++) {
     sdfjit::ast::Ast ast{};
@@ -145,5 +149,5 @@ int main() {
   uint32_t *screen = (uint32_t *)malloc(width * height * sizeof(uint32_t));
   rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
 
-  fuck_me_up_fam();
+  render_animation();
 }
