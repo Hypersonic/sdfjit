@@ -247,12 +247,12 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       // rotate about y:
       // x' = x * cos(t) + z * sin(t)
       // y' = y
-      // z' = x * -cos(t) + z * cos(t)
+      // z' = x * -sin(t) + z * cos(t)
       {
         auto x_prime = bc.add(bc.multiply(x, cosry), bc.multiply(z, sinry));
         auto y_prime = y;
         auto z_prime =
-            bc.add(bc.multiply(x, bc.negate(cosry)), bc.multiply(z, cosry));
+            bc.add(bc.multiply(x, bc.negate(sinry)), bc.multiply(z, cosry));
 
         x = x_prime;
         y = y_prime;

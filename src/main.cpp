@@ -84,7 +84,7 @@ void render_animation() {
             int(val & 0xff)};
   };
 
-  mkdir("frames", 0666);
+  mkdir("frames", 0777);
 
   for (size_t t = 0; t < 300; t++) {
     sdfjit::ast::Ast ast{};
