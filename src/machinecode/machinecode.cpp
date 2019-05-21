@@ -234,6 +234,22 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       bc_to_reg[id] = result;
       break;
     }
+
+    case sdfjit::bytecode::Op::Mod: {
+      auto x = bc_to_reg.at(node.arguments.at(0));
+      auto m = bc_to_reg.at(node.arguments.at(1));
+      /* x' = x % m:
+       *
+       * d = trunc(x / m);
+       * x' = x - (d * m);
+       */
+
+      // rounding mode = 0b11 (truncate towards zero)
+      auto d = mc.vroundps(mc.vdivps(x, m), Register::Imm(uint32_t(0b11)));
+      auto result = mc.vsubps(x, mc.vmulps(d, m));
+      bc_to_reg[id] = result;
+      break;
+    }
     }
   }
 

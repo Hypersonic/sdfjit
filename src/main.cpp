@@ -99,7 +99,7 @@ void render_animation() {
 
     merged = ast.add(
         merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                   fmodf(t / 10.0f, M_PI), 0.0f, 0.0f),
+                                   t / 10.0f, 0.0f, 0.0f),
                         20.0f, 20.0f, 20.0f));
 
     sdfjit::ast::opt::optimize(ast);

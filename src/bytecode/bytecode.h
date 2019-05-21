@@ -26,7 +26,8 @@ namespace sdfjit::bytecode {
     macro(Min) \
     macro(Max) \
     macro(Sin) \
-    macro(Cos)
+    macro(Cos) \
+    macro(Mod)
 // clang-format on
 
 #define DEFINE_ENUM_MEMBER_FOR_OP(op_type) op_type,
@@ -77,6 +78,7 @@ struct Bytecode {
   Node_Id max(Node_Id lhs, Node_Id rhs);
   Node_Id sin(Node_Id val);
   Node_Id cos(Node_Id val);
+  Node_Id mod(Node_Id lhs, Node_Id rhs);
 };
 
 } // namespace sdfjit::bytecode

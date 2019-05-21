@@ -289,6 +289,24 @@ void Assembler::vpsrld(const Instruction &instruction) {
   emit_byte(imm);
 }
 
+void Assembler::vroundps(const Instruction &instruction) {
+  auto dst = register_number(instruction.registers.at(0).machine_reg());
+  auto src = register_number(instruction.registers.at(1).machine_reg());
+  auto imm = uint32_t(instruction.registers.at(2).imm());
+
+  if (imm > 0xff) {
+    std::cerr << "Immediate to vroundps is too large: " << imm << std::endl;
+    abort();
+  }
+
+  emit_byte(0xc4);
+  emit_byte(0xe3);
+  emit_byte(0x7d); // not sure if we need to set flags in here...
+  emit_byte(0x08);
+  emit_byte(0xc0 | (dst << 3) | src);
+  emit_byte(imm);
+}
+
 void Assembler::pop(const Instruction &instruction) {
   auto reg = register_number(instruction.registers.at(0).machine_reg());
   emit_byte(0x58 | reg);

@@ -1,5 +1,6 @@
 #include "bytecode.h"
 
+#include <cmath>
 #include <unordered_map>
 
 namespace sdfjit::bytecode {
@@ -204,6 +205,13 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto ry = rotate.at(1);
       auto rz = rotate.at(2);
 
+      // Our sine and cosine approximations are only accurate in [0, M_PI], so
+      // modulo down to that range
+      auto pi = bc.assign_float(M_PI);
+      rx = bc.mod(rx, pi);
+      ry = bc.mod(ry, pi);
+      rz = bc.mod(rz, pi);
+
       /* Quick reminder on rotation matrices:
        *
        *      [ 1    0     0   ]
@@ -218,8 +226,6 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
        * Rz = [ sin  cos   0   ]
        *      [ 0    0     1   ]
        *
-       *
-       * TODO: expand this matrix out completely to do fewer ops
        */
 
       auto sinrx = bc.sin(rx);
@@ -228,6 +234,9 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto cosry = bc.cos(ry);
       auto sinrz = bc.sin(rz);
       auto cosrz = bc.cos(rz);
+
+      // TODO: instead of doing a separate multiplication for each dimension,
+      //       we should be doing the combined multiplication of all 3 matrices
 
       // rotate about x:
       // x' = x
@@ -372,5 +381,9 @@ Node_Id Bytecode::max(Node_Id lhs, Node_Id rhs) {
 Node_Id Bytecode::sin(Node_Id val) { return add_node(Node{Op::Sin, {val}}); }
 
 Node_Id Bytecode::cos(Node_Id val) { return add_node(Node{Op::Cos, {val}}); }
+
+Node_Id Bytecode::mod(Node_Id lhs, Node_Id rhs) {
+  return add_node(Node{Op::Mod, {lhs, rhs}});
+}
 
 } // namespace sdfjit::bytecode
