@@ -80,6 +80,8 @@ using Virtual_Register = size_t;
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vxorps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vroundps, true) \
@@ -324,6 +326,8 @@ struct Machine_Code {
 
   // some convenience functions to generate common sequences of instructions:
   Register mod(const Register &lhs, const Register &rhs);
+  Register cos(const Register &val);
+  Register sin(const Register &val);
 };
 
 std::ostream &operator<<(std::ostream &os, const Machine_Register reg);

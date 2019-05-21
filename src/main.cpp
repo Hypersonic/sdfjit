@@ -135,12 +135,14 @@ int main() {
       ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
               ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
 
-  merged = ast.add(merged, ast.box(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                   20.0f, 20.0f, 20.0f));
+  merged = ast.add(
+      merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
+                                 30.0f / 10.0f, 0.0f, 0.0f),
+                      20.0f, 20.0f, 20.0f));
 
   sdfjit::ast::opt::optimize(ast);
 
-  // dump_all_parts(ast);
+  dump_all_parts(ast);
 
   auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
 

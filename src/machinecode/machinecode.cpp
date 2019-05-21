@@ -192,57 +192,15 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
     }
 
     case sdfjit::bytecode::Op::Sin: {
-      /* we compute sin with Bhaskara I's formula, see
-       * https://en.wikipedia.org/wiki/Bhaskara_I%27s_sine_approximation_formula
-       * this isn't *super* accurate, but it's probably good enough for now,
-       * and it doesn't take very many instructions to compute
-       *
-       * sin(x) = (16 * x * (pi - x)) / (5 * pi^2 - 4 * x * (pi - x))
-       */
       auto x = bc_to_reg.at(node.arguments.at(0));
-      auto pi = mc.vbroadcastss(Register::Imm(float(M_PI)));
-      // Our sine and cosine approximations are only accurate in [0, M_PI], so
-      // modulo down to that range
-      // TODO: mod down to 2*pi and flip the sign based on that
-      //       actually it's more complicated on sin that cos, maybe just adjust
-      //       the angle by pi/2 and then let it use the cos logic?
-      x = mc.mod(x, pi);
-      auto five_time_pi_squared =
-          mc.vbroadcastss(Register::Imm(float(5 * M_PI * M_PI)));
-      auto pi_minus_x = mc.vsubps(pi, x);
-      auto four = mc.vbroadcastss(Register::Imm(4.0f));
-      auto four_time_x_times_pi_minus_x =
-          mc.vmulps(four, mc.vmulps(x, pi_minus_x));
-
-      auto numerator = mc.vmulps(four, four_time_x_times_pi_minus_x);
-      auto denominator =
-          mc.vsubps(five_time_pi_squared, four_time_x_times_pi_minus_x);
-      auto result = mc.vdivps(numerator, denominator);
-
+      auto result = mc.sin(x);
       bc_to_reg[id] = result;
       break;
     }
 
     case sdfjit::bytecode::Op::Cos: {
-      /* Just like sin, we're using Bhaskara I's approximation.
-       *
-       * cos(x) = (pi^2 - 4 * x^2) / (pi^2 + x^2)
-       */
       auto x = bc_to_reg.at(node.arguments.at(0));
-
-      // Our sine and cosine approximations are only accurate in [0, M_PI], so
-      // modulo down to that range
-      // TODO: mod down to 2*pi and flip the sign based on that
-      x = mc.mod(x, mc.vbroadcastss(Register::Imm(float(M_PI))));
-
-      auto pi_squared = mc.vbroadcastss(Register::Imm(float(M_PI * M_PI)));
-      auto x_squared = mc.vmulps(x, x);
-      auto four = mc.vbroadcastss(Register::Imm(4.0f));
-
-      auto numerator = mc.vsubps(pi_squared, mc.vmulps(four, x_squared));
-      auto denominator = mc.vaddps(pi_squared, x_squared);
-      auto result = mc.vdivps(numerator, denominator);
-
+      auto result = mc.cos(x);
       bc_to_reg[id] = result;
       break;
     }
@@ -365,6 +323,51 @@ Register Machine_Code::mod(const Register &lhs, const Register &rhs) {
   auto &m = rhs;
   auto d = vroundps(vdivps(x, m), Register::Imm(uint32_t(0b11)));
   auto result = vsubps(x, vmulps(d, m));
+  return result;
+}
+
+Register Machine_Code::cos(const Register &val) {
+  return sin(vaddps(val, vbroadcastss(Register::Imm(float(M_PI / 2)))));
+}
+
+Register Machine_Code::sin(const Register &val) {
+  /* we compute sin with Bhaskara I's formula, see
+   * https://en.wikipedia.org/wiki/Bhaskara_I%27s_sine_approximation_formula
+   * this isn't *super* accurate, but it's probably good enough for now,
+   * and it doesn't take very many instructions to compute
+   *
+   * sin(x) = (16 * x * (pi - x)) / (5 * pi^2 - 4 * x * (pi - x))
+   *
+   * This sine approximation is only accurate in [0, M_PI], so we need to modulo
+   * down to that range. However, since sine makes sense in [0, 2*M_PI], we
+   * actually want to bring it there, and then subtract M_PI to bring it into
+   * valid range, keep track of the sign bit and mask it off for our operation.
+   * Then we can flip the sign of the result if our sign is positive.
+   */
+  auto pi = vbroadcastss(Register::Imm(float(M_PI)));
+  auto pi_times_two = vbroadcastss(Register::Imm(float(M_PI * 2)));
+
+  auto x = mod(val, pi_times_two);
+  x = vsubps(x, pi);
+  auto saved_sign =
+      vandps(x, vbroadcastss(Register::Imm(uint32_t(0x80000000))));
+  x = vandps(x, vbroadcastss(Register::Imm(uint32_t(0x7fffffff))));
+
+  auto five_time_pi_squared =
+      vbroadcastss(Register::Imm(float(5 * M_PI * M_PI)));
+  auto pi_minus_x = vsubps(pi, x);
+  auto four = vbroadcastss(Register::Imm(4.0f));
+  auto four_time_x_times_pi_minus_x = vmulps(four, vmulps(x, pi_minus_x));
+
+  auto numerator = vmulps(four, four_time_x_times_pi_minus_x);
+  auto denominator = vsubps(five_time_pi_squared, four_time_x_times_pi_minus_x);
+  auto unsigned_sine = vdivps(numerator, denominator);
+
+  // add back in the sign bit we saved off earlier:
+  auto result = vxorps(
+      unsigned_sine,
+      vxorps(saved_sign, vbroadcastss(Register::Imm(uint32_t(0x80000000)))));
+
   return result;
 }
 
