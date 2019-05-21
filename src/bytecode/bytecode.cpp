@@ -207,6 +207,8 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
 
       // Our sine and cosine approximations are only accurate in [0, M_PI], so
       // modulo down to that range
+      // TODO: move this mod down into the sin/cos implementations, it's a leaky
+      // abstraction up here.
       auto pi = bc.assign_float(M_PI);
       rx = bc.mod(rx, pi);
       ry = bc.mod(ry, pi);
