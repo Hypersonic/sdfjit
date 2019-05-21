@@ -201,6 +201,12 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
        */
       auto x = bc_to_reg.at(node.arguments.at(0));
       auto pi = mc.vbroadcastss(Register::Imm(float(M_PI)));
+      // Our sine and cosine approximations are only accurate in [0, M_PI], so
+      // modulo down to that range
+      // TODO: mod down to 2*pi and flip the sign based on that
+      //       actually it's more complicated on sin that cos, maybe just adjust
+      //       the angle by pi/2 and then let it use the cos logic?
+      x = mc.mod(x, pi);
       auto five_time_pi_squared =
           mc.vbroadcastss(Register::Imm(float(5 * M_PI * M_PI)));
       auto pi_minus_x = mc.vsubps(pi, x);
@@ -223,6 +229,12 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
        * cos(x) = (pi^2 - 4 * x^2) / (pi^2 + x^2)
        */
       auto x = bc_to_reg.at(node.arguments.at(0));
+
+      // Our sine and cosine approximations are only accurate in [0, M_PI], so
+      // modulo down to that range
+      // TODO: mod down to 2*pi and flip the sign based on that
+      x = mc.mod(x, mc.vbroadcastss(Register::Imm(float(M_PI))));
+
       auto pi_squared = mc.vbroadcastss(Register::Imm(float(M_PI * M_PI)));
       auto x_squared = mc.vmulps(x, x);
       auto four = mc.vbroadcastss(Register::Imm(4.0f));
@@ -238,15 +250,7 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
     case sdfjit::bytecode::Op::Mod: {
       auto x = bc_to_reg.at(node.arguments.at(0));
       auto m = bc_to_reg.at(node.arguments.at(1));
-      /* x' = x % m:
-       *
-       * d = trunc(x / m);
-       * x' = x - (d * m);
-       */
-
-      // rounding mode = 0b11 (truncate towards zero)
-      auto d = mc.vroundps(mc.vdivps(x, m), Register::Imm(uint32_t(0b11)));
-      auto result = mc.vsubps(x, mc.vmulps(d, m));
+      auto result = mc.mod(x, m);
       bc_to_reg[id] = result;
       break;
     }
@@ -348,6 +352,21 @@ void Machine_Code::add_prologue_and_epilogue() {
 FOREACH_UNARY_MACHINE_OP(DEFINE_UNARY_OP);
 FOREACH_X86_UNARY_MACHINE_OP(DEFINE_X86_UNARY_OP);
 FOREACH_BINARY_MACHINE_OP(DEFINE_BINARY_OP);
+
+Register Machine_Code::mod(const Register &lhs, const Register &rhs) {
+  /* x' = x % m:
+   *
+   * d = trunc(x / m);
+   * x' = x - (d * m);
+   */
+
+  // rounding mode = 0b11 (truncate towards zero)
+  auto &x = lhs;
+  auto &m = rhs;
+  auto d = vroundps(vdivps(x, m), Register::Imm(uint32_t(0b11)));
+  auto result = vsubps(x, vmulps(d, m));
+  return result;
+}
 
 std::ostream &operator<<(std::ostream &os, Machine_Register reg) {
 #define MACHINE_REGISTER_TOSTRING(register_name, register_number)              \

@@ -321,6 +321,9 @@ struct Machine_Code {
 #undef BINARY_DECL
 #undef X86_UNARY_DECL
 #undef UNARY_DECL
+
+  // some convenience functions to generate common sequences of instructions:
+  Register mod(const Register &lhs, const Register &rhs);
 };
 
 std::ostream &operator<<(std::ostream &os, const Machine_Register reg);
