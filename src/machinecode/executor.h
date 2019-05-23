@@ -17,11 +17,26 @@ struct Executor {
                              void *results);
 
   ~Executor() {
+    const auto unmap = [](void *ptr, size_t length) {
+    // in release builds we just unmap.
+    // However, it it useful to not have allocations ever be reused, so we can
+    // always differentiate which jit page we're talking about, for example when
+    // profiling. When this is the case we just mprotect them to nothing and
+    // MADV_DONTNEED them. This still takes up a page table entry, but that's
+    // fine.
+#ifdef RELEASE
+      munmap(ptr, length);
+#else
+      mprotect(ptr, length, 0);
+      madvise(ptr, length, MADV_DONTNEED);
+#endif
+    };
+
     if (code) {
-      munmap(code, code_length);
+      unmap(code, code_length);
     }
     if (constants) {
-      munmap(constants, constants_length);
+      unmap(constants, constants_length);
     }
   }
 
