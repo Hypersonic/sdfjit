@@ -178,7 +178,7 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       /* float opSubtraction( float d1, float d2 ) { return max(-d1,d2); } */
       auto lhs = ast_to_bc.at(node.children[0]);
       auto rhs = ast_to_bc.at(node.children[1]);
-      auto result = bc.min(bc.negate(lhs), rhs);
+      auto result = bc.max(bc.negate(lhs), rhs);
       ast_to_bc[i] = result;
       ast_results[i] = {result};
       break;
