@@ -11,6 +11,7 @@
 #include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
 #include "machinecode/opt.h"
+#include "profiling/perf_map_writer.h"
 #include "raytracer/raytracer.h"
 #include "util/hexdump.h"
 
@@ -99,12 +100,14 @@ void render_animation() {
 
     merged = ast.add(
         merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                   t / 10.0f, 0.0f, 0.0f),
+                                   t / 10.0f, t / 30.0f, 0.0f),
                         20.0f, 20.0f, 20.0f));
 
     sdfjit::ast::opt::optimize(ast);
 
     auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
+    sdfjit::profiling::add_perf_map_region(rt.exec,
+                                           "frame" + std::to_string(t));
     rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
 
     std::fstream out("frames/out" + std::to_string(t) + ".ppm",
