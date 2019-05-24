@@ -11,6 +11,7 @@
 #include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
 #include "machinecode/opt.h"
+#include "profiling/frame_counter.h"
 #include "profiling/perf_map_writer.h"
 #include "raytracer/raytracer.h"
 #include "util/hexdump.h"
@@ -87,6 +88,7 @@ void render_animation() {
 
   mkdir("frames", 0777);
 
+  Frame_Counter fps{};
   for (size_t t = 0; t < 300; t++) {
     sdfjit::ast::Ast ast{};
     auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
@@ -124,7 +126,10 @@ void render_animation() {
     out.close();
 
     std::cout << "done with frame " << t << std::endl;
+    fps.tick_frame();
   }
+  fps.stop();
+  std::cout << "done rendering at " << fps.fps() << " fps" << std::endl;
 }
 
 int main() {
