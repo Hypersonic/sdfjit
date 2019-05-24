@@ -7,7 +7,6 @@
 #include <iomanip>
 
 #include "bytecode/bytecode.h"
-#include "machinecode/machinecode.h"
 #include "machinecode/opt.h"
 #include "util/macros.h"
 
@@ -20,7 +19,7 @@ Raytracer Raytracer::from_ast(sdfjit::ast::Ast &ast) {
   mc.allocate_registers();
   mc.add_prologue_and_epilogue();
   machinecode::optimize(mc);
-  Raytracer rt{{mc}};
+  Raytracer rt{{std::move(mc)}};
   rt.exec.create();
   return rt;
 }

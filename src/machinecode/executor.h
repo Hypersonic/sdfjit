@@ -3,11 +3,13 @@
 #include <cstddef>
 #include <sys/mman.h>
 
+#include "machinecode/machinecode.h"
+
 namespace sdfjit::machinecode {
 
 struct Machine_Code;
 struct Executor {
-  Machine_Code &mc;
+  Machine_Code mc;
   void *code{nullptr};
   size_t code_length{0};
   void *constants{nullptr};
