@@ -36,6 +36,33 @@ struct Assembler {
     emit_dword(val >> 32);
   }
 
+  template <uint8_t opcode>
+  void binary_op(const Register &r1, const Register &r2, const Register &r3) {
+    auto rn1 = register_number(r1.machine_reg());
+    auto rn2 = register_number(r2.machine_reg());
+    emit_byte(0xc5);
+    emit_byte(0x80 | ((~rn2 & 0xf) << 3) | 0x4);
+    emit_byte(opcode);
+
+    if (r3.is_machine()) {
+      auto rn3 = register_number(r3.machine_reg());
+      emit_byte(0xc0 | (rn1 << 3) | rn3);
+    } else {
+      auto rr3 = r3.memory_ref();
+      if (rr3.machine_reg() != Machine_Register::rsp) {
+        std::cerr << "Error: cannot handle non-rsp registers in binary_op"
+                  << std::endl;
+        abort();
+      }
+
+      auto rn3 = register_number(rr3.machine_reg());
+
+      emit_byte(0x80 | (rn1 << 3) | rn3);
+      emit_byte((rn3 << 3) | rn3);
+      emit_dword(rr3.offset);
+    }
+  }
+
 #define DECLARE_OP_EMITTER(name, ...) void name(const Instruction &instruction);
   FOREACH_MACHINE_OP(DECLARE_OP_EMITTER);
 };

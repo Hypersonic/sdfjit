@@ -26,25 +26,13 @@ void Assembler::assemble_instruction(const Instruction &instruction) {
 }
 
 void Assembler::vminps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x5d);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x5d>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vmaxps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x5f);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x5f>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vmovaps(const Instruction &instruction) {
@@ -212,80 +200,39 @@ void Assembler::vrsqrtps(const Instruction &instruction) {
 }
 
 void Assembler::vaddps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x58);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x58>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vsubps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x5C);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x5c>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vmulps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
 
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x59);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x59>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vdivps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x5e);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x5e>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vandps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x54);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x54>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vorps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x56);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x56>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vxorps(const Instruction &instruction) {
-  auto r1 = register_number(instruction.registers.at(0).machine_reg());
-  auto r2 = register_number(instruction.registers.at(1).machine_reg());
-  auto r3 = register_number(instruction.registers.at(2).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
-  emit_byte(0x57);
-  emit_byte(0xc0 | (r1 << 3) | r3);
+  binary_op<0x57>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
 }
 
 void Assembler::vpslld(const Instruction &instruction) {

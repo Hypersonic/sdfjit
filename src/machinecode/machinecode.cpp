@@ -80,6 +80,17 @@ bool Instruction::can_use_immediates() const {
 #undef USES_IMMEDIATE
 }
 
+bool Instruction::can_use_memory_ref() const {
+#define USES_MEMORY(op_name, num_args, set_reg_idxes, used_reg_idxes,          \
+                    takes_imm, takes_mem...)                                   \
+  case Op::op_name:                                                            \
+    return takes_mem;
+
+  switch (op) { FOREACH_MACHINE_OP(USES_MEMORY); }
+  abort();
+#undef USES_MEMORY
+}
+
 Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
   Machine_Code mc{};
 

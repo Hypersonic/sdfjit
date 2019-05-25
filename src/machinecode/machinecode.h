@@ -52,68 +52,68 @@ using Virtual_Register = size_t;
     macro(ymm6, 6) \
     macro(ymm7, 7)
 
-// macro(op_name, num_args, set_reg_idxs, used_reg_idxs, takes_imm)
+// macro(op_name, num_args, set_reg_idxs, used_reg_idxs, takes_imm, takes_mem)
 // TODO: all the ops
 // ops are generally named after their native code mneumonic
 #define MC_INITIALIZER_LIST(...) { __VA_ARGS__ }
 
-#define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2), takes_imm) \
+#define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2), takes_imm, takes_mem) \
 
-#define X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(0, 1), takes_imm)
+#define X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(0, 1), takes_imm, takes_mem)
 
-#define UNARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1), takes_imm) \
+#define UNARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 2, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1), takes_imm, takes_mem) \
 
-#define X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 1, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(0), takes_imm)
+#define X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 1, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(0), takes_imm, takes_mem)
 
-#define X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 1, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(), takes_imm)
+#define X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 1, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(), takes_imm, takes_mem)
 
-#define X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm) \
-    macro(name, 0, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(), takes_imm)
+#define X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 0, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(), takes_imm, takes_mem)
 
 #define FOREACH_BINARY_MACHINE_OP(macro) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vorps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vxorps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vroundps, true) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps, false) \
-    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vorps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vxorps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vroundps, true, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmaxps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vminps, false, true) \
 
 #define FOREACH_X86_BINARY_MACHINE_OP(macro) \
-    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, mov, true) \
-    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, add, true) \
-    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, sub, true) \
-    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, and64, true) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, mov, true, false) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, add, true, false) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, sub, true, false) \
+    X86_BINARY_MACHINE_OP_MACRO_WRAPPER(macro, and64, true, false) \
 
 #define FOREACH_X86_UNARY_IN_MACHINE_OP(macro) \
-    X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, push, false) \
+    X86_UNARY_IN_MACHINE_OP_MACRO_WRAPPER(macro, push, false, false) \
 
 #define FOREACH_X86_UNARY_OUT_MACHINE_OP(macro) \
-    X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, pop, false) \
+    X86_UNARY_OUT_MACHINE_OP_MACRO_WRAPPER(macro, pop, false, false) \
 
 #define FOREACH_X86_UNARY_MACHINE_OP(macro) \
     FOREACH_X86_UNARY_IN_MACHINE_OP(macro) \
     FOREACH_X86_UNARY_OUT_MACHINE_OP(macro) \
 
 #define FOREACH_UNARY_MACHINE_OP(macro) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false) \
-    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vrsqrtps, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vmovaps, false, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vbroadcastss, false, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vsqrtps, false, false) \
+    UNARY_MACHINE_OP_MACRO_WRAPPER(macro, vrsqrtps, false, false) \
 
 #define FOREACH_X86_NULLARY_MACHINE_OP(macro) \
-   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, nop, false) \
-   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, ret, false) \
+   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, nop, false, false) \
+   X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, ret, false, false) \
 
 #define FOREACH_MACHINE_OP(macro) \
     FOREACH_UNARY_MACHINE_OP(macro) \
@@ -265,6 +265,7 @@ struct Instruction {
   bool sets(const Register &reg) const;
   bool uses(const Register &reg) const;
   bool can_use_immediates() const;
+  bool can_use_memory_ref() const;
 
   void replace_register(const Register &from, const Register &to) {
     for (size_t i = 0; i < registers.size(); i++) {

@@ -88,10 +88,21 @@ void Linear_Scan_Register_Allocator::allocate(Machine_Code &mc) {
     } else {
       // it's a spilled register, so we need to insert a load from a temp reg
       // before and a store back after
-      auto temp_reg = Register::Machine(temp_regs_available.back());
-      temp_regs_available.pop_back();
+      bool needs_load = true;
+      Register temp_reg;
+      // we need to check that there is only *one* use of reg in the registers,
+      // so we don't break instructions like
+      //    vmulps xmm7, xmm6, xmm6
+      if (reg == insn.registers.back() && insn.can_use_memory_ref() &&
+          std::count(insn.registers.begin(), insn.registers.end(), reg) == 1) {
+        temp_reg = alloc_reg;
+        needs_load = false;
+      } else {
+        temp_reg = Register::Machine(temp_regs_available.back());
+        temp_regs_available.pop_back();
+      }
 
-      if (insn.uses(reg)) {
+      if (needs_load && insn.uses(reg)) {
         // load to temp reg
         insertion_set.before.vmovaps(instruction_idx, temp_reg, alloc_reg);
       }
