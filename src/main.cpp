@@ -87,6 +87,7 @@ void render_animation() {
   };
 
   mkdir("frames", 0777);
+  mkdir("jits", 0777);
 
   Frame_Counter fps{};
   for (size_t t = 0; t < 300; t++) {
@@ -112,18 +113,27 @@ void render_animation() {
                                            "frame" + std::to_string(t));
     rt.trace_image(0, 0, 0, 0, 0, 0, width, height, screen);
 
-    std::fstream out("frames/out" + std::to_string(t) + ".ppm",
-                     std::fstream::out);
-    out << "P3\n" << width << " " << height << "\n255\n";
-    for (size_t y = 0; y < height; y++) {
-      for (size_t x = 0; x < width; x++) {
-        size_t offset = y * width + x;
-        auto [r, g, b] = rgb(screen[offset]);
-        out << r << " " << g << " " << b << " ";
+    {
+      std::fstream out("frames/out" + std::to_string(t) + ".ppm",
+                       std::fstream::out);
+      out << "P3\n" << width << " " << height << "\n255\n";
+      for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+          size_t offset = y * width + x;
+          auto [r, g, b] = rgb(screen[offset]);
+          out << r << " " << g << " " << b << " ";
+        }
+        out << "\n";
       }
-      out << "\n";
+      out.close();
     }
-    out.close();
+
+    {
+      std::fstream out("jits/jit" + std::to_string(t) + ".txt",
+                       std::fstream::out);
+      out << rt.exec.mc;
+      out.close();
+    }
 
     std::cout << "done with frame " << t << std::endl;
     fps.tick_frame();
