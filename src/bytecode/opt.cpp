@@ -3,6 +3,7 @@
 #include "bytecode.h"
 #include "passes/constant_fold.h"
 #include "passes/cse.h"
+#include "passes/simplify_arithmetic.h"
 #include "passes/unused_value_elimination.h"
 
 namespace sdfjit::bytecode {
@@ -10,6 +11,7 @@ namespace sdfjit::bytecode {
 void optimize(Bytecode &bc) {
   passes::common_subexpression_elimination(bc);
   passes::constant_fold(bc);
+  passes::simplify_arithmetic(bc);
   passes::unused_value_elimination(bc);
 }
 
