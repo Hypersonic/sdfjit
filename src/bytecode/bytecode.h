@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "ast/ast.h"
+#include "util/compare.h"
 
 namespace sdfjit::bytecode {
 
@@ -11,6 +12,7 @@ namespace sdfjit::bytecode {
 // macro(op_type)
 // XXX: I'm basically adding ops here as I need them
 #define FOREACH_BC_OP(macro) \
+    macro(Nop) \
     macro(Load_Arg) \
     macro(Store_Result) \
     macro(Assign) \
@@ -48,6 +50,38 @@ struct Node {
   bool has_arguments() const {
     return op != Op::Assign_Float && op != Op::Load_Arg;
   }
+
+  bool operator==(const Node &rhs) const {
+    if (op != rhs.op) {
+      return false;
+    }
+    if (has_arguments()) {
+      return std::equal(arguments.begin(), arguments.end(),
+                        rhs.arguments.begin(), rhs.arguments.end());
+    } else if (op == Op::Assign_Float) {
+      return util::floats_equal(value, rhs.value);
+    } else if (op == Op::Load_Arg) {
+      return arg_index == rhs.arg_index;
+    }
+    abort();
+  }
+
+  bool operator!=(const Node &rhs) const { return !(*this == rhs); }
+
+  void convert_to_nop() {
+    op = Op::Nop;
+    arguments.clear();
+  }
+
+  void replace_all_uses_with(Node_Id from, Node_Id to) {
+    if (has_arguments()) {
+      for (auto &arg : arguments) {
+        if (arg == from) {
+          arg = to;
+        }
+      }
+    }
+  }
 };
 
 struct Bytecode {
@@ -58,10 +92,13 @@ struct Bytecode {
     return nodes.size() - 1;
   }
 
+  void replace_all_uses_with(Node_Id from, Node_Id to);
+
   void dump(std::ostream &os);
 
   static Bytecode from_ast(sdfjit::ast::Ast &ast);
 
+  Node_Id nop();
   Node_Id load_arg(size_t arg_idx);
   Node_Id store_result(Node_Id result);
   Node_Id assign(Node_Id rhs);

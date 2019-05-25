@@ -17,6 +17,12 @@ std::ostream &operator<<(std::ostream &os, Op op) {
   abort(); // unreachable
 }
 
+void Bytecode::replace_all_uses_with(Node_Id from, Node_Id to) {
+  for (size_t i = from; i < nodes.size(); i++) {
+    nodes[i].replace_all_uses_with(from, to);
+  }
+}
+
 void Bytecode::dump(std::ostream &os) {
   for (size_t i = 0; i < nodes.size(); i++) {
     auto &node = nodes[i];
@@ -314,6 +320,8 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
 
   return bc;
 }
+
+Node_Id Bytecode::nop() { return add_node(Node{Op::Nop, {}}); }
 
 Node_Id Bytecode::load_arg(size_t arg_idx) {
   return add_node(Node{Op::Load_Arg, {}, 0.0f, arg_idx});

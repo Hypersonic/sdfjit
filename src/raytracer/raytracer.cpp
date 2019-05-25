@@ -7,6 +7,7 @@
 #include <iomanip>
 
 #include "bytecode/bytecode.h"
+#include "bytecode/opt.h"
 #include "machinecode/opt.h"
 #include "util/macros.h"
 
@@ -14,6 +15,7 @@ namespace sdfjit::raytracer {
 
 Raytracer Raytracer::from_ast(sdfjit::ast::Ast &ast) {
   auto bc = bytecode::Bytecode::from_ast(ast);
+  bytecode::optimize(bc);
   auto mc = machinecode::Machine_Code::from_bytecode(bc);
   mc.resolve_immediates();
   mc.allocate_registers();

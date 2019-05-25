@@ -94,6 +94,10 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
     const auto &node = bc.nodes[id];
 
     switch (node.op) {
+    case sdfjit::bytecode::Op::Nop: {
+      break;
+    }
+
     case sdfjit::bytecode::Op::Load_Arg: {
       auto result = mc.vmovaps(get_argument_register(node.arg_index));
       bc_to_reg[id] = result;

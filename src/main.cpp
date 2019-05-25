@@ -7,6 +7,7 @@
 #include "ast/ast.h"
 #include "ast/opt.h"
 #include "bytecode/bytecode.h"
+#include "bytecode/opt.h"
 #include "machinecode/assembler.h"
 #include "machinecode/executor.h"
 #include "machinecode/machinecode.h"
@@ -26,6 +27,11 @@ void dump_all_parts(sdfjit::ast::Ast &ast) {
 
   std::cout << "Bytecode:" << std::endl;
   auto bc = sdfjit::bytecode::Bytecode::from_ast(ast);
+  bc.dump(std::cout);
+  std::cout << "=====================" << std::endl;
+
+  sdfjit::bytecode::optimize(bc);
+  std::cout << "Bytecode (optimized):" << std::endl;
   bc.dump(std::cout);
   std::cout << "=====================" << std::endl;
 
