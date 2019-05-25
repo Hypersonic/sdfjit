@@ -41,6 +41,8 @@ std::ostream &operator<<(std::ostream &os, Op op);
 // negative = input parameters
 using Node_Id = int32_t;
 
+struct Bytecode;
+
 struct Node {
   Op op;
   std::vector<Node_Id> arguments; // if has_arguments()
@@ -82,6 +84,8 @@ struct Node {
       }
     }
   }
+
+  bool is_constant_expression(const Bytecode &bc) const;
 };
 
 struct Bytecode {

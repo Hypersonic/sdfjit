@@ -6,6 +6,6 @@ struct Bytecode;
 
 namespace sdfjit::bytecode::passes {
 
-void common_subexpression_elimination(Bytecode &bc);
+void constant_fold(Bytecode &bc);
 
 } // namespace sdfjit::bytecode::passes

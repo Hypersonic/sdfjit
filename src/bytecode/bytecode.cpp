@@ -1,5 +1,6 @@
 #include "bytecode.h"
 
+#include <algorithm>
 #include <cmath>
 #include <unordered_map>
 
@@ -15,6 +16,18 @@ std::ostream &operator<<(std::ostream &os, Op op) {
 #undef STRING_FROM_OP
 
   abort(); // unreachable
+}
+
+bool Node::is_constant_expression(const Bytecode &bc) const {
+  if (has_arguments()) {
+    return std::all_of(arguments.begin(), arguments.end(),
+                       [&bc](Node_Id arg_id) -> bool {
+                         return bc.nodes[arg_id].is_constant_expression(bc);
+                       });
+  } else if (op == Op::Assign_Float) {
+    return true;
+  }
+  return false;
 }
 
 void Bytecode::replace_all_uses_with(Node_Id from, Node_Id to) {
@@ -37,7 +50,9 @@ void Bytecode::dump(std::ostream &os) {
         os << '@' << arg_id << ", ";
       }
     }
-    os << ')' << std::endl;
+    os << ") [Constant: "
+       << (node.is_constant_expression(*this) ? "true" : "false") << ']'
+       << std::endl;
   }
 }
 
