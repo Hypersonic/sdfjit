@@ -81,6 +81,7 @@ using Virtual_Register = size_t;
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandps, false) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vorps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vxorps, false) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpsrld, true) \

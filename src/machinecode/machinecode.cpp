@@ -174,7 +174,8 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
 
     case sdfjit::bytecode::Op::Negate: {
       auto val = bc_to_reg.at(node.arguments.at(0));
-      auto result = mc.vmulps(mc.vbroadcastss(Register::Imm(-1.0f)), val);
+      auto result =
+          mc.vorps(mc.vbroadcastss(Register::Imm(uint32_t(0x80000000))), val);
       bc_to_reg[id] = result;
       break;
     }

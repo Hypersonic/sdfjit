@@ -266,6 +266,17 @@ void Assembler::vandps(const Instruction &instruction) {
   emit_byte(0xc0 | (r1 << 3) | r3);
 }
 
+void Assembler::vorps(const Instruction &instruction) {
+  auto r1 = register_number(instruction.registers.at(0).machine_reg());
+  auto r2 = register_number(instruction.registers.at(1).machine_reg());
+  auto r3 = register_number(instruction.registers.at(2).machine_reg());
+
+  emit_byte(0xc5);
+  emit_byte(0x80 | ((~r2 & 0xf) << 3) | 0x4);
+  emit_byte(0x56);
+  emit_byte(0xc0 | (r1 << 3) | r3);
+}
+
 void Assembler::vxorps(const Instruction &instruction) {
   auto r1 = register_number(instruction.registers.at(0).machine_reg());
   auto r2 = register_number(instruction.registers.at(1).machine_reg());
