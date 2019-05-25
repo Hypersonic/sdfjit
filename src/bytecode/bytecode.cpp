@@ -18,6 +18,13 @@ std::ostream &operator<<(std::ostream &os, Op op) {
   abort(); // unreachable
 }
 
+bool Node::uses(Node_Id id) const {
+  if (has_arguments()) {
+    return std::find(arguments.begin(), arguments.end(), id) != arguments.end();
+  }
+  return false;
+}
+
 bool Node::is_constant_expression(const Bytecode &bc) const {
   if (has_arguments()) {
     return std::all_of(arguments.begin(), arguments.end(),

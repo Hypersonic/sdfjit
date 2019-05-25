@@ -85,6 +85,7 @@ struct Node {
     }
   }
 
+  bool uses(Node_Id id) const;
   bool is_constant_expression(const Bytecode &bc) const;
 };
 
