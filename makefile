@@ -8,14 +8,14 @@ RELEXT  = -release
 
 CXXFLAGS  += -march=native -fPIC -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -Wshadow -Wcast-align -Wunreachable-code -Wunused-variable -std=c++17 -Isrc/
 
-LDFLAGS += $(shell pkg-config --cflags sdl2)
+LDFLAGS += 
 
 ifeq ($(MACHINE), Linux) # Linux-specific setup
-	LIBS = $(shell pkg-config --libs sdl2) -ldl
+	LIBS = 
 	CFLAGS += -DUNIX -DLINUX -lm
 else
 	ifeq ($(MACHINE), Darwin) # OSX specific setup
-		LIBS = $(shell pkg-config --libs sdl2)
+		LIBS = 
 		CFLAGS += -DUNIX -DDARWIN
 	else
 		# TODO: Windows "support"
