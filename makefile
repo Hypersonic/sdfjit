@@ -59,7 +59,7 @@ all: game
 game: $(BNRY)
 	
 clean:
-	$(RM) $(BUILD) $(BNRY) $(BNRY)$(DEVEXT) $(BNRY)$(RELEXT)
+	$(RM) $(BUILD) $(BNRY) $(BNRY)$(DEVEXT) $(BNRY)$(RELEXT) jits frames
 
 $(DIRS):
 	$(MKDIR) $@
