@@ -84,13 +84,6 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
 
   for (size_t i = 0; i < ast.nodes.size(); i++) {
     const auto &node = ast.nodes[i];
-    /*
-    std::cout << "converting ast index to bytecode " << i << std::endl;
-    std::cout << "Ast results:" << std::endl;
-    for (const auto &[k, v] : ast_results) {
-      std::cout << k << ": " << v.size() << std::endl;
-    }
-    */
 
     switch (node.op) {
     case sdfjit::ast::Op::Sphere: {
@@ -114,9 +107,10 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto length = bc.sqrt(bc.add(x_sq, bc.add(y_sq, z_sq)));
 
       auto radius = ast_results.at(node.children.at(1))[0];
+      auto material = ast_results.at(node.children.at(2))[0];
 
       auto result = bc.subtract(length, radius);
-      ast_results[i] = {result};
+      ast_results[i] = {result, material};
       break;
     }
 
@@ -139,6 +133,8 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto box_wy = ast_results.at(node.children.at(2))[0];
       auto box_wz = ast_results.at(node.children.at(3))[0];
 
+      auto material = ast_results.at(node.children.at(4))[0];
+
       // d = abs(p) - b
       auto d_x = bc.subtract(bc.abs(position_x), box_wx);
       auto d_y = bc.subtract(bc.abs(position_y), box_wy);
@@ -158,7 +154,7 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto minmax = bc.min(bc.max(d_x, bc.max(d_y, d_z)), zero);
 
       auto result = bc.add(length, minmax);
-      ast_results[i] = {result};
+      ast_results[i] = {result, material};
       break;
     }
 
@@ -191,27 +187,52 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       auto lhs_dist = lhs.at(0);
       auto rhs_dist = rhs.at(0);
 
-      auto dist = bc.min(lhs_dist, rhs_dist);
+      auto lhs_mat = lhs.at(1);
+      auto rhs_mat = rhs.at(1);
 
-      ast_results[i] = {dist};
+      auto dist = bc.min(lhs_dist, rhs_dist);
+      auto mat =
+          bc.select(Select_Type::LT, lhs_dist, rhs_dist, lhs_mat, rhs_mat);
+
+      ast_results[i] = {dist, mat};
       break;
     }
 
     case sdfjit::ast::Op::Subtract: {
       /* float opSubtraction( float d1, float d2 ) { return max(-d1,d2); } */
-      auto lhs = ast_results.at(node.children[0])[0];
-      auto rhs = ast_results.at(node.children[1])[0];
-      auto result = bc.max(bc.negate(lhs), rhs);
-      ast_results[i] = {result};
+      auto lhs = ast_results.at(node.children[0]);
+      auto rhs = ast_results.at(node.children[1]);
+
+      auto lhs_dist = lhs.at(0);
+      auto rhs_dist = rhs.at(0);
+
+      auto lhs_mat = lhs.at(1);
+      auto rhs_mat = rhs.at(1);
+
+      auto dist = bc.max(bc.negate(lhs_dist), rhs_dist);
+      auto mat = bc.select(Select_Type::GT, bc.negate(lhs_dist), rhs_dist,
+                           lhs_mat, rhs_mat);
+
+      ast_results[i] = {dist, mat};
       break;
     }
 
     case sdfjit::ast::Op::Intersect: {
       /* float opIntersection( float d1, float d2 ) { return max(d1,d2); } */
-      auto lhs = ast_results.at(node.children[0])[0];
-      auto rhs = ast_results.at(node.children[1])[0];
-      auto result = bc.max(lhs, rhs);
-      ast_results[i] = {result};
+      auto lhs = ast_results.at(node.children[0]);
+      auto rhs = ast_results.at(node.children[1]);
+
+      auto lhs_dist = lhs.at(0);
+      auto rhs_dist = rhs.at(0);
+
+      auto lhs_mat = lhs.at(1);
+      auto rhs_mat = rhs.at(1);
+
+      auto dist = bc.max(lhs_dist, rhs_dist);
+      auto mat =
+          bc.select(Select_Type::GT, lhs_dist, rhs_dist, lhs_mat, rhs_mat);
+
+      ast_results[i] = {dist, mat};
       break;
     }
 
@@ -331,7 +352,8 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
     }
   }
 
-  bc.store_result(ast_results.at(ast.nodes.size() - 1)[0]);
+  auto result = ast_results.at(ast.nodes.size() - 1);
+  bc.store_result(result.at(0), result.at(1));
 
   return bc;
 }
@@ -342,8 +364,8 @@ Node_Id Bytecode::load_arg(size_t arg_idx) {
   return add_node(Node{Op::Load_Arg, {}, 0.0f, arg_idx});
 }
 
-Node_Id Bytecode::store_result(Node_Id value) {
-  return add_node(Node{Op::Store_Result, {value}});
+Node_Id Bytecode::store_result(Node_Id distance, Node_Id material) {
+  return add_node(Node{Op::Store_Result, {distance, material}});
 }
 
 Node_Id Bytecode::assign(Node_Id rhs) {
@@ -400,6 +422,12 @@ Node_Id Bytecode::cos(Node_Id val) { return add_node(Node{Op::Cos, {val}}); }
 
 Node_Id Bytecode::mod(Node_Id lhs, Node_Id rhs) {
   return add_node(Node{Op::Mod, {lhs, rhs}});
+}
+
+Node_Id Bytecode::select(Select_Type op, Node_Id lhs, Node_Id rhs,
+                         Node_Id true_case, Node_Id false_case) {
+  return add_node(
+      Node{Op::Select, {lhs, rhs, true_case, false_case}, 0, 0, op});
 }
 
 } // namespace sdfjit::bytecode

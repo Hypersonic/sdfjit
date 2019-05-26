@@ -17,6 +17,24 @@
 #include "raytracer/raytracer.h"
 #include "util/hexdump.h"
 
+sdfjit::ast::Ast ast_at(size_t t) {
+  sdfjit::ast::Ast ast{};
+  auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
+                      sdfjit::ast::IN_Z); // x, y, z input parameters.
+
+  pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
+
+  auto merged =
+      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f, 2.0f),
+              ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f, 1.0f));
+
+  merged = ast.add(
+      merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
+                                 t / 10.0f, t / 30.0f, 0.0f),
+                      20.0f, 20.0f, 20.0f, 3.0f));
+  return ast;
+}
+
 void dump_all_parts(sdfjit::ast::Ast &ast) {
   std::cout << "AST (sexpr):" << std::endl;
   ast.dump_sexpr(std::cout);
@@ -97,21 +115,7 @@ void render_animation() {
 
   Frame_Counter fps{};
   for (size_t t = 0; t < 300; t++) {
-    sdfjit::ast::Ast ast{};
-    auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
-                        sdfjit::ast::IN_Z); // x, y, z input parameters.
-
-    pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
-
-    auto merged =
-        ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
-                ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
-
-    merged = ast.add(
-        merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                   t / 10.0f, t / 30.0f, 0.0f),
-                        20.0f, 20.0f, 20.0f));
-
+    auto ast = ast_at(t);
     sdfjit::ast::opt::optimize(ast);
 
     auto rt = sdfjit::raytracer::Raytracer::from_ast(ast);
@@ -149,21 +153,7 @@ void render_animation() {
 }
 
 int main() {
-  sdfjit::ast::Ast ast{};
-  auto pos = ast.pos3(sdfjit::ast::IN_X, sdfjit::ast::IN_Y,
-                      sdfjit::ast::IN_Z); // x, y, z input parameters.
-
-  pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
-
-  auto merged =
-      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f),
-              ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f));
-
-  merged = ast.add(
-      merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
-                                 30.0f / 10.0f, 0.0f, 0.0f),
-                      20.0f, 20.0f, 20.0f));
-
+  auto ast = ast_at(0);
   sdfjit::ast::opt::optimize(ast);
 
   dump_all_parts(ast);

@@ -16,7 +16,7 @@ struct Executor {
   size_t constants_length{0};
 
   using Function_Type = void(void *xs, void *ys, void *zs, void *constants,
-                             void *results);
+                             void *distances, void *materials);
 
   ~Executor() {
     const auto unmap = [](void *ptr, size_t length) {
@@ -43,7 +43,8 @@ struct Executor {
   }
 
   void create();
-  void call(void *xs, void *ys, void *zs, void *results) const;
+  void call(void *xs, void *ys, void *zs, void *distances,
+            void *materials) const;
 };
 
 } // namespace sdfjit::machinecode

@@ -117,9 +117,12 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
 
     case sdfjit::bytecode::Op::Store_Result: {
       // XXX: this is written super poorly. Need to clean it up
-      auto result = Register::Memory(
+      auto distance = Register::Memory(
           get_argument_register(4).memory_ref().machine_reg(), 0);
-      mc.vmovaps(result, bc_to_reg.at(node.arguments.at(0)));
+      auto material = Register::Memory(
+          get_argument_register(5).memory_ref().machine_reg(), 0);
+      mc.vmovaps(distance, bc_to_reg.at(node.arguments.at(0)));
+      mc.vmovaps(material, bc_to_reg.at(node.arguments.at(1)));
       break;
     }
 
@@ -228,6 +231,23 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       bc_to_reg[id] = result;
       break;
     }
+
+    case sdfjit::bytecode::Op::Select: {
+      auto op = node.select_type;
+      auto lhs = bc_to_reg.at(node.arguments.at(0));
+      auto rhs = bc_to_reg.at(node.arguments.at(1));
+      auto true_case = bc_to_reg.at(node.arguments.at(2));
+      auto false_case = bc_to_reg.at(node.arguments.at(3));
+
+      auto mask =
+          mc.vcmpps(lhs, rhs, Register::Imm(select_type_to_vcmpps_imm(op)));
+      auto true_lanes = mc.vandps(mask, true_case);
+      auto false_lanes = mc.vandnps(mask, false_case);
+      auto result = mc.vorps(true_lanes, false_lanes);
+
+      bc_to_reg[id] = result;
+      break;
+    }
     }
   }
 
@@ -323,9 +343,22 @@ void Machine_Code::add_prologue_and_epilogue() {
         .at(0);                                                                \
   }
 
+#define DEFINE_TERNARY_OP(name, ...)                                           \
+  Register Machine_Code::name(const Register &op1, const Register &op2,        \
+                              const Register &op3) {                           \
+    return name(new_virtual_register(), op1, op2, op3);                        \
+  }                                                                            \
+  Register Machine_Code::name(const Register &result, const Register &op1,     \
+                              const Register &op2, const Register &op3) {      \
+    return add_instruction(Instruction{Op::name, {result, op1, op2, op3}})     \
+        .set_registers()                                                       \
+        .at(0);                                                                \
+  }
+
 FOREACH_UNARY_MACHINE_OP(DEFINE_UNARY_OP);
 FOREACH_X86_UNARY_MACHINE_OP(DEFINE_X86_UNARY_OP);
 FOREACH_BINARY_MACHINE_OP(DEFINE_BINARY_OP);
+FOREACH_TERNARY_MACHINE_OP(DEFINE_TERNARY_OP);
 
 Register Machine_Code::mod(const Register &lhs, const Register &rhs) {
   /* x' = x % m:
@@ -471,6 +504,20 @@ Register get_argument_register(size_t arg_index) {
     abort();
   }
   return Register::Memory(reg, 0);
+}
+
+uint8_t select_type_to_vcmpps_imm(bytecode::Select_Type select_type) {
+  using bytecode::Select_Type;
+
+  switch (select_type) {
+  case Select_Type::EQ:
+    return 0;
+  case Select_Type::LT:
+    return 1;
+  case Select_Type::GT:
+    return 10;
+  }
+  abort();
 }
 
 } // namespace sdfjit::machinecode

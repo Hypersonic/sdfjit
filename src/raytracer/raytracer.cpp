@@ -29,13 +29,14 @@ Raytracer Raytracer::from_ast(sdfjit::ast::Ast &ast) {
 bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
                           float *__restrict ys, float *__restrict zs,
                           float *__restrict dxs, float *__restrict dys,
-                          float *__restrict dzs,
-                          float *__restrict distances) const {
+                          float *__restrict dzs, float *__restrict distances,
+                          float *__restrict materials) const {
   const auto count = width * height;
 
   // get distances
   for (size_t offset = 0; offset < count; offset += 8) {
-    exec.call(&xs[offset], &ys[offset], &zs[offset], &distances[offset]);
+    exec.call(&xs[offset], &ys[offset], &zs[offset], &distances[offset],
+              &materials[offset]);
   }
 
   // update positions:
@@ -113,8 +114,9 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   float *xs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
   float *ys = (float *)aligned_alloc(256 / 8, count * sizeof(float));
   float *zs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  // distance buffer:
+  // distance & material buffers:
   float *distances = (float *)aligned_alloc(256 / 8, count * sizeof(float));
+  float *materials = (float *)aligned_alloc(256 / 8, count * sizeof(float));
   // normalized directions rays are moving in:
   float *dxs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
   float *dys = (float *)aligned_alloc(256 / 8, count * sizeof(float));
@@ -155,7 +157,8 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     }
   }
 
-  while (one_round(width, height, xs, ys, zs, dxs, dys, dzs, distances))
+  while (
+      one_round(width, height, xs, ys, zs, dxs, dys, dzs, distances, materials))
     ;
 
   for (size_t y = 0; y < height; y++) {
@@ -163,7 +166,21 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
       size_t offset = y * width + x;
 
       if (distances[offset] <= 0) {
-        screen[offset] = 0x00ffffff;
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
+
+        if (util::floats_equal(materials[offset], 1.0f)) {
+          r = 0xff;
+        }
+        if (util::floats_equal(materials[offset], 2.0f)) {
+          g = 0xff;
+        }
+        if (util::floats_equal(materials[offset], 3.0f)) {
+          b = 0xff;
+        }
+
+        screen[offset] = (r << 16) | (g << 8) | (b);
       } else {
         screen[offset] = 0x00000000;
       }
@@ -173,6 +190,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   free(xs);
   free(ys);
   free(zs);
+  free(materials);
   free(distances);
   free(dxs);
   free(dys);

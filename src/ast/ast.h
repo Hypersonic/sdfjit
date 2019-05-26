@@ -66,10 +66,11 @@ struct Ast {
   void dump_sexpr(std::ostream &os, size_t indent = 0);
 
   /* Primitives */
-  Node_Id sphere(Node_Id position, float radius);
-  Node_Id sphere(Node_Id position, Node_Id radius);
-  Node_Id box(Node_Id position, float wx, float wy, float wz);
-  Node_Id box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz);
+  Node_Id sphere(Node_Id position, float radius, float material);
+  Node_Id sphere(Node_Id position, Node_Id radius, Node_Id material);
+  Node_Id box(Node_Id position, float wx, float wy, float wz, float material);
+  Node_Id box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz,
+              Node_Id material);
   Node_Id float32(float value);
   Node_Id pos3(float x, float y, float z);
   Node_Id pos3(Node_Id x, Node_Id y, Node_Id z);

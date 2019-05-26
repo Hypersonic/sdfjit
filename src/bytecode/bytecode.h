@@ -29,13 +29,26 @@ namespace sdfjit::bytecode {
     macro(Max) \
     macro(Sin) \
     macro(Cos) \
-    macro(Mod)
+    macro(Mod) \
+    macro(Select)
+
+// types of comparators for Select
+#define FOREACH_SELECT_TYPE(macro) \
+    macro(EQ) \
+    macro(LT) \
+    macro(GT)
 // clang-format on
 
 #define DEFINE_ENUM_MEMBER_FOR_OP(op_type) op_type,
 enum class Op { FOREACH_BC_OP(DEFINE_ENUM_MEMBER_FOR_OP) };
 #undef DEFINE_ENUM_MEMBER_FOR_OP
 std::ostream &operator<<(std::ostream &os, Op op);
+
+#define DEFINE_ENUM_MEMBER_FOR_SELECT_TYPE(select_type) select_type,
+enum class Select_Type {
+  FOREACH_SELECT_TYPE(DEFINE_ENUM_MEMBER_FOR_SELECT_TYPE)
+};
+#undef DEFINE_ENUM_MEMBER_FOR_SELECT_TYPE
 
 // positive = indexes in the bytecode's nodes list.
 // negative = input parameters
@@ -48,6 +61,7 @@ struct Node {
   std::vector<Node_Id> arguments; // if has_arguments()
   float value{0.0};               // for Assign_Float
   size_t arg_index{0};            // for Load_Arg
+  Select_Type select_type{0};     // for Select
 
   bool has_arguments() const {
     return op != Op::Assign_Float && op != Op::Load_Arg;
@@ -105,7 +119,7 @@ struct Bytecode {
 
   Node_Id nop();
   Node_Id load_arg(size_t arg_idx);
-  Node_Id store_result(Node_Id result);
+  Node_Id store_result(Node_Id distance, Node_Id material);
   Node_Id assign(Node_Id rhs);
   Node_Id assign_float(float rhs);
   Node_Id add(Node_Id lhs, Node_Id rhs);
@@ -121,6 +135,8 @@ struct Bytecode {
   Node_Id sin(Node_Id val);
   Node_Id cos(Node_Id val);
   Node_Id mod(Node_Id lhs, Node_Id rhs);
+  Node_Id select(Select_Type op, Node_Id lhs, Node_Id rhs, Node_Id true_case,
+                 Node_Id false_case);
 };
 
 } // namespace sdfjit::bytecode

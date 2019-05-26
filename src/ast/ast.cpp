@@ -93,20 +93,23 @@ void Ast::dump_sexpr(std::ostream &os, size_t indent) {
 
 /* Primitives */
 
-Node_Id Ast::sphere(Node_Id position, float radius) {
-  return sphere(position, float32(radius));
+Node_Id Ast::sphere(Node_Id position, float radius, float material) {
+  return sphere(position, float32(radius), float32(material));
 }
 
-Node_Id Ast::sphere(Node_Id position, Node_Id radius) {
-  return add_node(Node{Op::Sphere, {position, radius}});
+Node_Id Ast::sphere(Node_Id position, Node_Id radius, Node_Id material) {
+  return add_node(Node{Op::Sphere, {position, radius, material}});
 }
 
-Node_Id Ast::box(Node_Id position, float wx, float wy, float wz) {
-  return box(position, float32(wx), float32(wy), float32(wz));
+Node_Id Ast::box(Node_Id position, float wx, float wy, float wz,
+                 float material) {
+  return box(position, float32(wx), float32(wy), float32(wz),
+             float32(material));
 }
 
-Node_Id Ast::box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz) {
-  return add_node(Node{Op::Box, {position, wx, wy, wz}});
+Node_Id Ast::box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz,
+                 Node_Id material) {
+  return add_node(Node{Op::Box, {position, wx, wy, wz, material}});
 }
 
 Node_Id Ast::float32(float value) { return add_node({Op::Float32, {}, value}); }

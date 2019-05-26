@@ -20,6 +20,11 @@ struct Inserter {
 
   void add_instruction(size_t index, const Instruction &instruction);
 
+#define DECLARE_TERNARY_OP(name, ...)                                          \
+  void name(size_t index, const Register &result, const Register &op1,         \
+            const Register &op2, const Register &op3) {                        \
+    add_instruction(index, Instruction{Op::name, {result, op1, op2, op3}});    \
+  }
 #define DECLARE_BINARY_OP(name, ...)                                           \
   void name(size_t index, const Register &result, const Register &lhs,         \
             const Register &rhs) {                                             \
@@ -40,11 +45,19 @@ struct Inserter {
 #define DECLARE_X86_NULLARY_OP(name, ...)                                      \
   void name(size_t index) { add_instruction(index, Instruction{Op::name, {}}); }
 
+  FOREACH_TERNARY_MACHINE_OP(DECLARE_TERNARY_OP);
   FOREACH_BINARY_MACHINE_OP(DECLARE_BINARY_OP);
   FOREACH_UNARY_MACHINE_OP(DECLARE_UNARY_OP);
   FOREACH_X86_BINARY_MACHINE_OP(DECLARE_X86_BINARY_OP);
   FOREACH_X86_UNARY_MACHINE_OP(DECLARE_X86_UNARY_OP);
   FOREACH_X86_NULLARY_MACHINE_OP(DECLARE_X86_NULLARY_OP);
+
+#undef DECLARE_TERNARY_OP
+#undef DECLARE_BINARY_OP
+#undef DECLARE_UNARY_OP
+#undef DECLARE_X86_BINARY_OP
+#undef DECLARE_X86_UNARY_OP
+#undef DECLARE_X86_NULLARY_OP
 };
 
 struct Insertion_Set {

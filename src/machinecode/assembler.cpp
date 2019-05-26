@@ -225,6 +225,11 @@ void Assembler::vandps(const Instruction &instruction) {
                   instruction.registers.at(2));
 }
 
+void Assembler::vandnps(const Instruction &instruction) {
+  binary_op<0x55>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
+}
+
 void Assembler::vorps(const Instruction &instruction) {
   binary_op<0x56>(instruction.registers.at(0), instruction.registers.at(1),
                   instruction.registers.at(2));
@@ -285,6 +290,14 @@ void Assembler::vroundps(const Instruction &instruction) {
   emit_byte(0x08);
   emit_byte(0xc0 | (dst << 3) | src);
   emit_byte(imm);
+}
+
+void Assembler::vcmpps(const Instruction &instruction) {
+  // vcmpps looks like any other binary instruction, but also takes an byte
+  // immediate to tell it which comparison type to do
+  binary_op<0xc2>(instruction.registers.at(0), instruction.registers.at(1),
+                  instruction.registers.at(2));
+  emit_byte(uint32_t(instruction.registers.at(3).imm()));
 }
 
 void Assembler::pop(const Instruction &instruction) {

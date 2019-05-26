@@ -57,6 +57,9 @@ using Virtual_Register = size_t;
 // ops are generally named after their native code mneumonic
 #define MC_INITIALIZER_LIST(...) { __VA_ARGS__ }
 
+#define TERNARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
+    macro(name, 4, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2, 3), takes_imm, takes_mem) \
+
 #define BINARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
     macro(name, 3, MC_INITIALIZER_LIST(0), MC_INITIALIZER_LIST(1, 2), takes_imm, takes_mem) \
 
@@ -75,12 +78,16 @@ using Virtual_Register = size_t;
 #define X86_NULLARY_MACHINE_OP_MACRO_WRAPPER(macro, name, takes_imm, takes_mem) \
     macro(name, 0, MC_INITIALIZER_LIST(), MC_INITIALIZER_LIST(), takes_imm, takes_mem)
 
+#define FOREACH_TERNARY_MACHINE_OP(macro) \
+    TERNARY_MACHINE_OP_MACRO_WRAPPER(macro, vcmpps, true, false) \
+
 #define FOREACH_BINARY_MACHINE_OP(macro) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vaddps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vsubps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vmulps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vdivps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandps, false, true) \
+    BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vandnps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vorps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vxorps, false, true) \
     BINARY_MACHINE_OP_MACRO_WRAPPER(macro, vpslld, true, false) \
@@ -118,6 +125,7 @@ using Virtual_Register = size_t;
 #define FOREACH_MACHINE_OP(macro) \
     FOREACH_UNARY_MACHINE_OP(macro) \
     FOREACH_BINARY_MACHINE_OP(macro) \
+    FOREACH_TERNARY_MACHINE_OP(macro) \
     FOREACH_X86_BINARY_MACHINE_OP(macro) \
     FOREACH_X86_UNARY_MACHINE_OP(macro) \
     FOREACH_X86_NULLARY_MACHINE_OP(macro)
@@ -211,6 +219,9 @@ struct Register {
   static Register Imm(uint64_t imm) { return {Kind::Immediate, imm}; }
   static Register Imm(uint32_t imm) {
     return {Kind::Immediate, Immediate_Value(imm)};
+  }
+  static Register Imm(uint8_t imm) {
+    return {Kind::Immediate, Immediate_Value(uint32_t(imm))};
   }
   static Register Imm(float imm) {
     return {Kind::Immediate, Immediate_Value(util::float_to_bits(imm))};
@@ -314,14 +325,21 @@ struct Machine_Code {
   Register name(const Register &lhs, const Register &rhs);                     \
   Register name(const Register &result, const Register &lhs,                   \
                 const Register &rhs);
+#define TERNARY_DECL(name, ...)                                                \
+  Register name(const Register &op1, const Register &op2,                      \
+                const Register &op3);                                          \
+  Register name(const Register &result, const Register &op1,                   \
+                const Register &op2, const Register &op3);
 #define X86_NULLARY_DECL(name, ...) Register name();
 
   FOREACH_UNARY_MACHINE_OP(UNARY_DECL);
   FOREACH_X86_UNARY_MACHINE_OP(X86_UNARY_DECL);
   FOREACH_BINARY_MACHINE_OP(BINARY_DECL);
+  FOREACH_TERNARY_MACHINE_OP(TERNARY_DECL);
   FOREACH_X86_NULLARY_MACHINE_OP(X86_NULLARY_DECL);
 
 #undef X86_NULLARY_DECL
+#undef TERNARY_DECL
 #undef BINARY_DECL
 #undef X86_UNARY_DECL
 #undef UNARY_DECL
@@ -341,5 +359,6 @@ std::ostream &operator<<(std::ostream &os, const Instruction &insn);
 std::ostream &operator<<(std::ostream &os, const Machine_Code &mc);
 
 Register get_argument_register(size_t arg_index);
+uint8_t select_type_to_vcmpps_imm(bytecode::Select_Type select_type);
 
 } // namespace sdfjit::machinecode

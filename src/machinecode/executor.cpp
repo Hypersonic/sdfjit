@@ -39,10 +39,11 @@ void Executor::create() {
   finalize_region(constants, constants_length, PROT_READ);
 }
 
-void Executor::call(void *xs, void *ys, void *zs, void *results) const {
+void Executor::call(void *xs, void *ys, void *zs, void *distances,
+                    void *materials) const {
   Executor::Function_Type *func =
       reinterpret_cast<Executor::Function_Type *>(code);
-  func(xs, ys, zs, constants, results);
+  func(xs, ys, zs, constants, distances, materials);
 }
 
 } // namespace sdfjit::machinecode
