@@ -180,23 +180,11 @@ void Assembler::vbroadcastss(const Instruction &instruction) {
 }
 
 void Assembler::vsqrtps(const Instruction &instruction) {
-  auto dst = register_number(instruction.registers.at(0).machine_reg());
-  auto src = register_number(instruction.registers.at(1).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0xfc);
-  emit_byte(0x51);
-  emit_byte(0xc0 | (dst << 3) | src);
+  unary_op<0x51>(instruction.registers.at(0), instruction.registers.at(1));
 }
 
 void Assembler::vrsqrtps(const Instruction &instruction) {
-  auto dst = register_number(instruction.registers.at(0).machine_reg());
-  auto src = register_number(instruction.registers.at(1).machine_reg());
-
-  emit_byte(0xc5);
-  emit_byte(0xfc);
-  emit_byte(0x52);
-  emit_byte(0xc0 | (dst << 3) | src);
+  unary_op<0x52>(instruction.registers.at(0), instruction.registers.at(1));
 }
 
 void Assembler::vaddps(const Instruction &instruction) {

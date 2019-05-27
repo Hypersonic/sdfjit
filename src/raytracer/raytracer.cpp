@@ -110,17 +110,18 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   // our raytracing setup right now is that we send out a ray for each pixel.
   // our screen is 3-component _RGB (top byte of the pixel is always empty)
   const auto count = width * height;
+  const auto alignment = 256 / 8;
   // current ray positions:
-  float *xs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  float *ys = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  float *zs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
+  float *xs = (float *)aligned_alloc(alignment, count * sizeof(float));
+  float *ys = (float *)aligned_alloc(alignment, count * sizeof(float));
+  float *zs = (float *)aligned_alloc(alignment, count * sizeof(float));
   // distance & material buffers:
-  float *distances = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  float *materials = (float *)aligned_alloc(256 / 8, count * sizeof(float));
+  float *distances = (float *)aligned_alloc(alignment, count * sizeof(float));
+  float *materials = (float *)aligned_alloc(alignment, count * sizeof(float));
   // normalized directions rays are moving in:
-  float *dxs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  float *dys = (float *)aligned_alloc(256 / 8, count * sizeof(float));
-  float *dzs = (float *)aligned_alloc(256 / 8, count * sizeof(float));
+  float *dxs = (float *)aligned_alloc(alignment, count * sizeof(float));
+  float *dys = (float *)aligned_alloc(alignment, count * sizeof(float));
+  float *dzs = (float *)aligned_alloc(alignment, count * sizeof(float));
 
   const float invWidth = 1 / (float)width, invHeight = 1 / (float)height;
   const float fov = 45, aspectratio = width / (float)height;

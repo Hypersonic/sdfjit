@@ -37,6 +37,32 @@ struct Assembler {
   }
 
   template <uint8_t opcode>
+  void unary_op(const Register &r1, const Register &r2) {
+    emit_byte(0xc5);
+    emit_byte(0xfc);
+    emit_byte(opcode);
+
+    auto rn1 = register_number(r1.machine_reg());
+    if (r2.is_machine()) {
+      auto rn2 = register_number(r2.machine_reg());
+      emit_byte(0xc0 | (rn1 << 3) | rn2);
+    } else {
+      auto rr2 = r2.memory_ref();
+      if (rr2.machine_reg() != Machine_Register::rsp) {
+        std::cerr << "Error: cannot handle non-rsp registers in unary_op"
+                  << std::endl;
+        abort();
+      }
+
+      auto rn2 = register_number(rr2.machine_reg());
+
+      emit_byte(0x80 | (rn1 << 3) | rn2);
+      emit_byte((rn2 << 3) | rn2);
+      emit_dword(rr2.offset);
+    }
+  }
+
+  template <uint8_t opcode>
   void binary_op(const Register &r1, const Register &r2, const Register &r3) {
     auto rn1 = register_number(r1.machine_reg());
     auto rn2 = register_number(r2.machine_reg());
