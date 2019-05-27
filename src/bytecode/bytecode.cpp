@@ -151,19 +151,24 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
 
       auto material = ast_results.at(node.children.at(4))[0];
 
+      auto zero = bc.assign_float(0.0f);
+      auto compute_sqrt_part = [&bc, &zero](auto d) {
+        // d_max = max(d, 0.0)
+        auto d_max = bc.max(d, zero);
+        // d_sq = d_max ^ 2
+        auto d_sq = bc.multiply(d_max, d_max);
+        return d_sq;
+      };
+
       // d = abs(p) - b
       auto d_x = bc.subtract(bc.abs(position_x), box_wx);
       auto d_y = bc.subtract(bc.abs(position_y), box_wy);
       auto d_z = bc.subtract(bc.abs(position_z), box_wz);
 
       // length(max(d, 0.0))
-      auto zero = bc.assign_float(0.0f);
-      auto d_x_max = bc.max(d_x, zero);
-      auto d_y_max = bc.max(d_y, zero);
-      auto d_z_max = bc.max(d_z, zero);
-      auto d_x_sq = bc.multiply(d_x_max, d_x_max);
-      auto d_y_sq = bc.multiply(d_y_max, d_y_max);
-      auto d_z_sq = bc.multiply(d_z_max, d_z_max);
+      auto d_x_sq = compute_sqrt_part(d_x);
+      auto d_y_sq = compute_sqrt_part(d_y);
+      auto d_z_sq = compute_sqrt_part(d_z);
       auto length = bc.sqrt(bc.add(d_x_sq, bc.add(d_y_sq, d_z_sq)));
 
       // min(max(d.x,max(d.y,d.z), 0.0)
