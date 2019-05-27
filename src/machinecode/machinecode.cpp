@@ -126,9 +126,6 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       break;
     }
 
-    case sdfjit::bytecode::Op::Assign:
-      abort(); // TODO
-
     case sdfjit::bytecode::Op::Assign_Float: {
       auto result = mc.vbroadcastss(Register::Imm(node.value));
       bc_to_reg[id] = result;
@@ -173,9 +170,6 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       bc_to_reg[id] = result;
       break;
     }
-
-    case sdfjit::bytecode::Op::Rsqrt:
-      abort(); // TODO
 
     case sdfjit::bytecode::Op::Abs: {
       // there's a good breakdown of options in an answer here:

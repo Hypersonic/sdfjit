@@ -384,10 +384,6 @@ Node_Id Bytecode::store_result(Node_Id distance, Node_Id material) {
   return add_node(Node{Op::Store_Result, {distance, material}});
 }
 
-Node_Id Bytecode::assign(Node_Id rhs) {
-  return add_node(Node{Op::Assign, {rhs}});
-}
-
 Node_Id Bytecode::assign_float(float rhs) {
   return add_node(Node{Op::Assign_Float, {}, rhs});
 }
@@ -410,10 +406,6 @@ Node_Id Bytecode::divide(Node_Id lhs, Node_Id rhs) {
 
 Node_Id Bytecode::sqrt(Node_Id value) {
   return add_node(Node{Op::Sqrt, {value}});
-}
-
-Node_Id Bytecode::rsqrt(Node_Id value) {
-  return add_node(Node{Op::Rsqrt, {value}});
 }
 
 Node_Id Bytecode::abs(Node_Id value) {

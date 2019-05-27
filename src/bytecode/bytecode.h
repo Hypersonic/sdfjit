@@ -15,14 +15,12 @@ namespace sdfjit::bytecode {
     macro(Nop) \
     macro(Load_Arg) \
     macro(Store_Result) \
-    macro(Assign) \
     macro(Assign_Float) \
     macro(Add) \
     macro(Subtract) \
     macro(Multiply) \
     macro(Divide) \
     macro(Sqrt) \
-    macro(Rsqrt) \
     macro(Abs) \
     macro(Negate) \
     macro(Min) \
@@ -128,7 +126,6 @@ struct Bytecode {
   Node_Id multiply(Node_Id lhs, Node_Id rhs);
   Node_Id divide(Node_Id lhs, Node_Id rhs);
   Node_Id sqrt(Node_Id value);
-  Node_Id rsqrt(Node_Id value);
   Node_Id abs(Node_Id value);
   Node_Id negate(Node_Id value);
   Node_Id min(Node_Id lhs, Node_Id rhs);
