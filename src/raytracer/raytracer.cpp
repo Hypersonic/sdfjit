@@ -157,10 +157,12 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     }
   }
 
+  // pass 1: find geometry collisions
   while (
       one_round(width, height, xs, ys, zs, dxs, dys, dzs, distances, materials))
     ;
 
+  // fill in screen with initial colors
   for (size_t y = 0; y < height; y++) {
     for (size_t x = 0; x < width; x++) {
       size_t offset = y * width + x;
@@ -170,6 +172,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
         uint8_t g = 0;
         uint8_t b = 0;
 
+        // XXX: move this to some kind of "material lookup"
         if (util::floats_equal(materials[offset], 1.0f)) {
           r = 0xff;
         }

@@ -159,8 +159,13 @@ Machine_Code Machine_Code::from_bytecode(const sdfjit::bytecode::Bytecode &bc) {
       break;
     }
 
-    case sdfjit::bytecode::Op::Divide:
-      abort(); // TODO
+    case sdfjit::bytecode::Op::Divide: {
+      auto lhs = bc_to_reg.at(node.arguments.at(0));
+      auto rhs = bc_to_reg.at(node.arguments.at(1));
+      auto result = mc.vdivps(lhs, rhs);
+      bc_to_reg[id] = result;
+      break;
+    }
 
     case sdfjit::bytecode::Op::Sqrt: {
       auto src = bc_to_reg.at(node.arguments.at(0));
