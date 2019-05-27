@@ -1,5 +1,7 @@
 #include "ast.h"
 
+#include "util/compare.h"
+
 namespace sdfjit::ast {
 
 bool Node::is_same_as(Ast &ast, Node &other) {
@@ -15,7 +17,7 @@ bool Node::is_same_as(Ast &ast, Node &other) {
   }
 
   if (op == Op::Float32) {
-    return std::abs(value - other.value) < .00001;
+    return util::floats_equal(value, other.value);
   }
 
   if (children.size() != other.children.size()) {
