@@ -18,6 +18,17 @@ std::ostream &operator<<(std::ostream &os, Op op) {
   abort(); // unreachable
 }
 
+std::ostream &operator<<(std::ostream &os, Select_Type select_type) {
+#define STRING_FROM_SELECT_TYPE(st)                                            \
+  case Select_Type::st:                                                        \
+    return os << #st;
+
+  switch (select_type) { FOREACH_SELECT_TYPE(STRING_FROM_SELECT_TYPE); }
+
+#undef STRING_FROM_SELECT_TYPE
+  abort(); // unreachable
+}
+
 bool Node::uses(Node_Id id) const {
   if (has_arguments()) {
     return std::find(arguments.begin(), arguments.end(), id) != arguments.end();
@@ -53,10 +64,15 @@ void Bytecode::dump(std::ostream &os) {
     } else if (node.op == Op::Load_Arg) {
       os << node.arg_index;
     } else {
+      if (node.op == Op::Select) {
+        os << node.select_type << ", ";
+      }
+
       for (const auto arg_id : node.arguments) {
         os << '@' << arg_id << ", ";
       }
     }
+
     os << ") [Constant: "
        << (node.is_constant_expression(*this) ? "true" : "false") << ']'
        << std::endl;

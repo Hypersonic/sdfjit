@@ -49,6 +49,7 @@ enum class Select_Type {
   FOREACH_SELECT_TYPE(DEFINE_ENUM_MEMBER_FOR_SELECT_TYPE)
 };
 #undef DEFINE_ENUM_MEMBER_FOR_SELECT_TYPE
+std::ostream &operator<<(std::ostream &os, Select_Type select_type);
 
 // positive = indexes in the bytecode's nodes list.
 // negative = input parameters
