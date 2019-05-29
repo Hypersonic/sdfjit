@@ -6,7 +6,7 @@ RELEXT  = -release
 
 .PHONY: all clean
 
-CXXFLAGS  += -march=native -fPIC -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -Wshadow -Wcast-align -Wunreachable-code -Wunused-variable -std=c++17 -Isrc/
+CXXFLAGS  += -march=native -fPIC -fno-exceptions -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -Wshadow -Wcast-align -Wunreachable-code -Wunused-variable -std=c++17 -Isrc/
 
 LDFLAGS += 
 
