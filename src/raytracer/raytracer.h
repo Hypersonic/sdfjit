@@ -13,8 +13,8 @@ struct Raytracer {
 
   static Raytracer from_ast(sdfjit::ast::Ast &ast);
 
-  bool one_round(size_t width, size_t height, float *xs, float *ys, float *zs,
-                 float *dxs, float *dys, float *dzs, float *distances,
+  bool one_round(size_t count, float *xs, float *ys, float *zs, float *dxs,
+                 float *dys, float *dzs, float *distances,
                  float *materials) const;
 
   void trace_image(float x, float y, float z, float hx, float hy, float hz,

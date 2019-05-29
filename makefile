@@ -11,8 +11,8 @@ CXXFLAGS  += -march=native -fPIC -fno-rtti -Werror -Wall -Wextra -Wfloat-equal -
 LDFLAGS += 
 
 ifeq ($(MACHINE), Linux) # Linux-specific setup
-	LIBS = 
-	CFLAGS += -DUNIX -DLINUX -lm
+	LIBS = -lpthread
+	CFLAGS += -DUNIX -DLINUX -lm -lpthread
 else
 	ifeq ($(MACHINE), Darwin) # OSX specific setup
 		LIBS = 

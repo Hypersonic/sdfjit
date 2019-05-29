@@ -5,6 +5,8 @@
 #include <cstring>
 #include <immintrin.h>
 #include <iomanip>
+#include <memory>
+#include <pthread.h>
 
 #include "bytecode/bytecode.h"
 #include "bytecode/opt.h"
@@ -26,13 +28,11 @@ Raytracer Raytracer::from_ast(sdfjit::ast::Ast &ast) {
   return rt;
 }
 
-bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
+bool Raytracer::one_round(size_t count, float *__restrict xs,
                           float *__restrict ys, float *__restrict zs,
                           float *__restrict dxs, float *__restrict dys,
                           float *__restrict dzs, float *__restrict distances,
                           float *__restrict materials) const {
-  const auto count = width * height;
-
   // get distances
   for (size_t offset = 0; offset < count; offset += 8) {
     exec.call(&xs[offset], &ys[offset], &zs[offset], &distances[offset],
@@ -104,6 +104,26 @@ bool Raytracer::one_round(size_t width, size_t height, float *__restrict xs,
   return not_done;
 }
 
+struct Trace_Thread_Arg {
+  const Raytracer *rt;
+  size_t count;
+  float *xs;
+  float *ys;
+  float *zs;
+  float *dxs;
+  float *dys;
+  float *dzs;
+  float *distances;
+  float *materials;
+};
+
+void *trace_thread(Trace_Thread_Arg *arg) {
+  while (arg->rt->one_round(arg->count, arg->xs, arg->ys, arg->zs, arg->dxs,
+                            arg->dys, arg->dzs, arg->distances, arg->materials))
+    ;
+  return NULL;
+}
+
 void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
                             float hz, size_t width, size_t height,
                             uint32_t *screen) const {
@@ -111,17 +131,34 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   // our screen is 3-component _RGB (top byte of the pixel is always empty)
   const auto count = width * height;
   const auto alignment = 256 / 8;
+  const auto num_threads = 16; // XXX: should get number of cpus dynamically
+
+  auto make_buffer = [&](size_t size) -> std::unique_ptr<float[]> {
+    auto alloc = (float *)aligned_alloc(alignment, size * sizeof(float));
+    return std::move(std::unique_ptr<float[]>(alloc));
+  };
+
+  auto make_count_buffer = [&]() { return make_buffer(count); };
+
   // current ray positions:
-  float *xs = (float *)aligned_alloc(alignment, count * sizeof(float));
-  float *ys = (float *)aligned_alloc(alignment, count * sizeof(float));
-  float *zs = (float *)aligned_alloc(alignment, count * sizeof(float));
+  auto xs = make_count_buffer();
+  auto ys = make_count_buffer();
+  auto zs = make_count_buffer();
   // distance & material buffers:
-  float *distances = (float *)aligned_alloc(alignment, count * sizeof(float));
-  float *materials = (float *)aligned_alloc(alignment, count * sizeof(float));
+  auto distances = make_count_buffer();
+  auto materials = make_count_buffer();
+  // for the reflections (XXX: make this an array so we can do multiple
+  // reflections)
+  auto reflected_materials = make_count_buffer();
   // normalized directions rays are moving in:
-  float *dxs = (float *)aligned_alloc(alignment, count * sizeof(float));
-  float *dys = (float *)aligned_alloc(alignment, count * sizeof(float));
-  float *dzs = (float *)aligned_alloc(alignment, count * sizeof(float));
+  auto dxs = make_count_buffer();
+  auto dys = make_count_buffer();
+  auto dzs = make_count_buffer();
+  // buffers for doing normal estimation, we need to compute 2 positions on
+  // either side of the original position in each axis to estimate the normal
+  auto normal_estimation_xs = make_buffer(2 * count);
+  auto normal_estimation_ys = make_buffer(2 * count);
+  auto normal_estimation_zs = make_buffer(2 * count);
 
   const float invWidth = 1 / (float)width, invHeight = 1 / (float)height;
   const float fov = 45, aspectratio = width / (float)height;
@@ -146,7 +183,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
 
       size_t offset = y * width + x;
 
-      // setup rey directions:
+      // setup ray directions:
       dxs[offset] = xx;
       dys[offset] = yy;
       dzs[offset] = zz;
@@ -159,9 +196,29 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   }
 
   // pass 1: find geometry collisions
-  while (
-      one_round(width, height, xs, ys, zs, dxs, dys, dzs, distances, materials))
-    ;
+  std::vector<Trace_Thread_Arg> thread_args{};
+  std::vector<pthread_t> threads{};
+
+  // we need to avoid reallocating since we're passing pointers into this vector
+  thread_args.reserve(num_threads);
+  auto run_length = count / num_threads;
+  for (size_t i = 0; i < num_threads; i++) {
+    auto offset = i * run_length;
+    thread_args.push_back(
+        Trace_Thread_Arg{this, run_length, xs.get() + offset, ys.get() + offset,
+                         zs.get() + offset, dxs.get() + offset,
+                         dys.get() + offset, dzs.get() + offset,
+                         distances.get() + offset, materials.get() + offset});
+
+    pthread_t thread;
+    pthread_create(&thread, NULL, (void *(*)(void *))trace_thread,
+                   &thread_args.back());
+    threads.push_back(thread);
+  }
+
+  for (auto thread : threads) {
+    pthread_join(thread, NULL);
+  }
 
   // fill in screen with initial colors
   for (size_t y = 0; y < height; y++) {
@@ -191,14 +248,25 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     }
   }
 
-  free(xs);
-  free(ys);
-  free(zs);
-  free(materials);
-  free(distances);
-  free(dxs);
-  free(dys);
-  free(dzs);
+  // pass 2: calculate normals:
+  /*
+  static constexpr float normal_epsilon = .001;
+  for (size_t i = 0; i < count; i++) {
+    //.x = sdf(translate_x(pos, eps)) - sdf(translate_x(pos, -eps)),
+    //.y = sdf(translate_y(pos, eps)) - sdf(translate_y(pos, -eps)),
+    //.z = sdf(translate_z(pos, eps)) - sdf(translate_z(pos, -eps)),
+
+    // XXX: ugh this shit is wrong, we need to have 6 full component vectors I
+    // think UGH... actually maybe we can do it with these and the modified
+    // collision points... TODO when i'm more awake
+    normal_estimation_xs[(i * 2) + 0] = xs[i] + normal_epsilon;
+    normal_estimation_xs[(i * 2) + 1] = xs[i] - normal_epsilon;
+    normal_estimation_ys[(i * 2) + 0] = ys[i] + normal_epsilon;
+    normal_estimation_ys[(i * 2) + 1] = ys[i] - normal_epsilon;
+    normal_estimation_zs[(i * 2) + 0] = zs[i] + normal_epsilon;
+    normal_estimation_zs[(i * 2) + 1] = zs[i] - normal_epsilon;
+  }
+  */
 }
 
 } // namespace sdfjit::raytracer
