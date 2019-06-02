@@ -25,7 +25,8 @@ sdfjit::ast::Ast ast_at(size_t t) {
   pos = ast.translate(pos, 0.0f, 0.0f, -200.0f);
 
   auto merged =
-      ast.add(ast.box(pos, 10.0f, 20.0f, 30.0f, 2.0f),
+      ast.add(ast.box(ast.rotate(pos, 0.0f, t / 20.0f, 0.0f), 10.0f, 20.0f,
+                      30.0f, 2.0f),
               ast.sphere(ast.translate(pos, 30.0f, 30.0f, 30.0f), 6.0f, 1.0f));
 
   merged = ast.add(

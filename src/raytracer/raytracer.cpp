@@ -149,6 +149,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   auto materials = make_count_buffer();
   // for the reflections (XXX: make this an array so we can do multiple
   // reflections)
+  auto reflected_distances = make_count_buffer();
   auto reflected_materials = make_count_buffer();
   // normalized directions rays are moving in:
   auto dxs = make_count_buffer();
@@ -156,9 +157,41 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   auto dzs = make_count_buffer();
   // buffers for doing normal estimation, we need to compute 2 positions on
   // either side of the original position in each axis to estimate the normal
-  auto normal_estimation_xs = make_buffer(2 * count);
-  auto normal_estimation_ys = make_buffer(2 * count);
-  auto normal_estimation_zs = make_buffer(2 * count);
+  auto normal_estimation_low_xs = make_count_buffer();
+  auto normal_estimation_high_xs = make_count_buffer();
+  auto normal_estimation_low_ys = make_count_buffer();
+  auto normal_estimation_high_ys = make_count_buffer();
+  auto normal_estimation_low_zs = make_count_buffer();
+  auto normal_estimation_high_zs = make_count_buffer();
+  std::unique_ptr<float[]> normal_estimation_distances[] = {
+      make_count_buffer(), make_count_buffer(), make_count_buffer(),
+      make_count_buffer(), make_count_buffer(), make_count_buffer(),
+  };
+  auto normal_estimation_xs = make_count_buffer();
+  auto normal_estimation_ys = make_count_buffer();
+  auto normal_estimation_zs = make_count_buffer();
+  // we don't need materials for normal estimation, but we still need a buffer
+  // for them to go in that we won't use.
+  auto throwaway_materials = make_count_buffer();
+
+  auto color_for_material = [&](float material) {
+    uint8_t r = 0;
+    uint8_t g = 0;
+    uint8_t b = 0;
+
+    // XXX: move this to some kind of "material lookup"
+    if (util::floats_equal(material, 1.0f)) {
+      r = 0xff;
+    }
+    if (util::floats_equal(material, 2.0f)) {
+      g = 0xff;
+    }
+    if (util::floats_equal(material, 3.0f)) {
+      b = 0xff;
+    }
+
+    return (r << 16) | (g << 8) | (b);
+  };
 
   const float invWidth = 1 / (float)width, invHeight = 1 / (float)height;
   const float fov = 45, aspectratio = width / (float)height;
@@ -220,53 +253,115 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     pthread_join(thread, NULL);
   }
 
-  // fill in screen with initial colors
+  // pass 2: calculate normals:
+  // normal_x = sdf(translate_x(pos, eps)) - sdf(translate_x(pos, -eps)),
+  // normal_y = sdf(translate_y(pos, eps)) - sdf(translate_y(pos, -eps)),
+  // normal_z = sdf(translate_z(pos, eps)) - sdf(translate_z(pos, -eps)),
+  static constexpr float normal_epsilon = .00001;
+  for (size_t i = 0; i < count; i++) {
+    normal_estimation_low_xs[i] = xs[i] - normal_epsilon;
+    normal_estimation_high_xs[i] = xs[i] + normal_epsilon;
+    normal_estimation_low_ys[i] = ys[i] - normal_epsilon;
+    normal_estimation_high_ys[i] = ys[i] + normal_epsilon;
+    normal_estimation_low_zs[i] = zs[i] - normal_epsilon;
+    normal_estimation_high_zs[i] = zs[i] + normal_epsilon;
+  }
+  auto normal_sdf = [&count, &throwaway_materials,
+                     this](float *normal_xs, float *normal_ys, float *normal_zs,
+                           float *normal_distances) {
+    // TODO: thread this out like above for performance
+    for (size_t offset = 0; offset < count; offset += 8) {
+      exec.call(&normal_xs[offset], &normal_ys[offset], &normal_zs[offset],
+                &normal_distances[offset], &throwaway_materials[offset]);
+    }
+  };
+
+  // ok, finally compute our normals
+  normal_sdf(normal_estimation_low_xs.get(), ys.get(), zs.get(),
+             normal_estimation_distances[0].get());
+  normal_sdf(normal_estimation_high_xs.get(), ys.get(), zs.get(),
+             normal_estimation_distances[1].get());
+  normal_sdf(xs.get(), normal_estimation_low_ys.get(), zs.get(),
+             normal_estimation_distances[2].get());
+  normal_sdf(xs.get(), normal_estimation_high_ys.get(), zs.get(),
+             normal_estimation_distances[3].get());
+  normal_sdf(xs.get(), ys.get(), normal_estimation_low_zs.get(),
+             normal_estimation_distances[4].get());
+  normal_sdf(xs.get(), ys.get(), normal_estimation_high_zs.get(),
+             normal_estimation_distances[5].get());
+
+  for (size_t i = 0; i < count; i++) {
+    normal_estimation_xs[i] =
+        normal_estimation_high_xs[i] - normal_estimation_low_xs[i];
+    normal_estimation_ys[i] =
+        normal_estimation_high_ys[i] - normal_estimation_low_ys[i];
+    normal_estimation_zs[i] =
+        normal_estimation_high_zs[i] - normal_estimation_low_zs[i];
+  }
+
+  // normalize our vectors
+  for (size_t i = 0; i < count; i++) {
+    auto length = sqrtf(normal_estimation_xs[i] * normal_estimation_xs[i] +
+                        normal_estimation_ys[i] * normal_estimation_ys[i] +
+                        normal_estimation_zs[i] * normal_estimation_zs[i]);
+    normal_estimation_xs[i] /= length;
+    normal_estimation_ys[i] /= length;
+    normal_estimation_zs[i] /= length;
+  }
+
+  // before we can start moving things towards their reflection, we need to move
+  // the rays a bit past the "skin" of their current object. That way, they
+  // don't decide that they're reflected immediately against themselves.
+  for (size_t i = 0; i < count; i++) {
+    auto distance = distances[i] + 1.0f;
+    xs[i] += normal_estimation_xs[i] * distance;
+    ys[i] += normal_estimation_ys[i] * distance;
+    zs[i] += normal_estimation_zs[i] * distance;
+  }
+
+  // now we can actually send those rays out to find the reflected surface
+  // TODO: thread this out like above for performance
+  while (one_round(count, xs.get(), ys.get(), zs.get(),
+                   normal_estimation_xs.get(), normal_estimation_ys.get(),
+                   normal_estimation_zs.get(), reflected_distances.get(),
+                   reflected_materials.get()))
+    ;
+
+  auto combine_reflection = [](auto primary_color, auto reflected_color) {
+#if 0
+    auto primary_r = (primary_color & 0xff0000) >> 16;
+    auto primary_g = (primary_color & 0xff00) >> 8;
+    auto primary_b = (primary_color & 0xff);
+    auto reflected_r = (reflected_color & 0xff0000) >> 16;
+    auto reflected_g = (reflected_color & 0xff00) >> 8;
+    auto reflected_b = (reflected_color & 0xff);
+
+    auto merge = [](auto a, auto b) { return (a * 3 / 4) + (b / 4); };
+
+    return (merge(primary_r, reflected_r) << 16) |
+           (merge(primary_g, reflected_g) << 8) | merge(primary_b, reflected_b);
+#else
+    (void)primary_color;
+    return reflected_color;
+#endif
+  };
+
+  // fill in screen with colors
   for (size_t y = 0; y < height; y++) {
     for (size_t x = 0; x < width; x++) {
       size_t offset = y * width + x;
-
       if (distances[offset] <= 0) {
-        uint8_t r = 0;
-        uint8_t g = 0;
-        uint8_t b = 0;
-
-        // XXX: move this to some kind of "material lookup"
-        if (util::floats_equal(materials[offset], 1.0f)) {
-          r = 0xff;
+        auto main_color = color_for_material(materials[offset]);
+        auto reflected_color = color_for_material(reflected_materials[offset]);
+        if (reflected_distances[offset] > 0) {
+          reflected_color = main_color;
         }
-        if (util::floats_equal(materials[offset], 2.0f)) {
-          g = 0xff;
-        }
-        if (util::floats_equal(materials[offset], 3.0f)) {
-          b = 0xff;
-        }
-
-        screen[offset] = (r << 16) | (g << 8) | (b);
+        screen[offset] = combine_reflection(main_color, reflected_color);
       } else {
         screen[offset] = 0x00000000;
       }
     }
   }
-
-  // pass 2: calculate normals:
-  /*
-  static constexpr float normal_epsilon = .001;
-  for (size_t i = 0; i < count; i++) {
-    //.x = sdf(translate_x(pos, eps)) - sdf(translate_x(pos, -eps)),
-    //.y = sdf(translate_y(pos, eps)) - sdf(translate_y(pos, -eps)),
-    //.z = sdf(translate_z(pos, eps)) - sdf(translate_z(pos, -eps)),
-
-    // XXX: ugh this shit is wrong, we need to have 6 full component vectors I
-    // think UGH... actually maybe we can do it with these and the modified
-    // collision points... TODO when i'm more awake
-    normal_estimation_xs[(i * 2) + 0] = xs[i] + normal_epsilon;
-    normal_estimation_xs[(i * 2) + 1] = xs[i] - normal_epsilon;
-    normal_estimation_ys[(i * 2) + 0] = ys[i] + normal_epsilon;
-    normal_estimation_ys[(i * 2) + 1] = ys[i] - normal_epsilon;
-    normal_estimation_zs[(i * 2) + 0] = zs[i] + normal_epsilon;
-    normal_estimation_zs[(i * 2) + 1] = zs[i] - normal_epsilon;
-  }
-  */
 }
 
 } // namespace sdfjit::raytracer
