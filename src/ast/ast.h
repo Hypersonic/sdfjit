@@ -12,6 +12,7 @@ namespace sdfjit::ast {
     /* Primitive types */ \
     macro(Sphere) \
     macro(Box) \
+    macro(Plane) \
     macro(Float32) \
     macro(Pos3) \
     macro(Noop) \
@@ -70,6 +71,8 @@ struct Ast {
   Node_Id box(Node_Id position, float wx, float wy, float wz, float material);
   Node_Id box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz,
               Node_Id material);
+  Node_Id plane(Node_Id position, Node_Id normal, float material);
+  Node_Id plane(Node_Id position, Node_Id normal, Node_Id material);
   Node_Id float32(float value);
   Node_Id pos3(float x, float y, float z);
   Node_Id pos3(Node_Id x, Node_Id y, Node_Id z);

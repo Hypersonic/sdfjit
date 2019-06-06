@@ -179,6 +179,22 @@ Bytecode Bytecode::from_ast(sdfjit::ast::Ast &ast) {
       break;
     }
 
+    case sdfjit::ast::Op::Plane: {
+      auto position = ast_results.at(node.children[0]);
+      auto normal = ast_results.at(node.children[1]);
+      auto material = ast_results.at(node.children[2])[0];
+
+      // XXX: do we need a w coord on the normal?
+      // XXX: should we manually renormalize the normal to be sure?
+
+      auto distance = bc.add(bc.add(bc.multiply(position[0], normal[0]),
+                                    bc.multiply(position[1], normal[1])),
+                             bc.multiply(position[2], normal[2]));
+
+      ast_results[i] = {distance, material};
+      break;
+    }
+
     case sdfjit::ast::Op::Float32: {
       auto result = bc.assign_float(node.value);
       ast_results[i] = {result};

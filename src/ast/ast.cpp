@@ -114,6 +114,14 @@ Node_Id Ast::box(Node_Id position, Node_Id wx, Node_Id wy, Node_Id wz,
   return add_node(Node{Op::Box, {position, wx, wy, wz, material}});
 }
 
+Node_Id Ast::plane(Node_Id position, Node_Id normal, float material) {
+  return plane(position, normal, float32(material));
+}
+
+Node_Id Ast::plane(Node_Id position, Node_Id normal, Node_Id material) {
+  return add_node(Node{Op::Plane, {position, normal, material}});
+}
+
 Node_Id Ast::float32(float value) { return add_node({Op::Float32, {}, value}); }
 
 Node_Id Ast::pos3(float x, float y, float z) {

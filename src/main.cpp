@@ -33,6 +33,12 @@ sdfjit::ast::Ast ast_at(size_t t) {
       merged, ast.box(ast.rotate(ast.translate(pos, -60.0f, -60.0f, -60.0f),
                                  t / 10.0f, t / 30.0f, 0.0f),
                       20.0f, 20.0f, 20.0f, 3.0f));
+
+  auto floor = ast.plane(ast.translate(pos, 0.0f, -200.0f, 0.0f),
+                         ast.pos3(0.0f, 1.0f, 0.0f), 4.0f);
+
+  merged = ast.add(merged, floor);
+
   return ast;
 }
 

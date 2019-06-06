@@ -10,7 +10,6 @@ namespace sdfjit::bytecode {
 
 // clang-format off
 // macro(op_type)
-// XXX: I'm basically adding ops here as I need them
 #define FOREACH_BC_OP(macro) \
     macro(Nop) \
     macro(Load_Arg) \
