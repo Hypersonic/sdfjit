@@ -135,7 +135,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
 
   auto make_buffer = [&](size_t size) -> std::unique_ptr<float[]> {
     auto alloc = (float *)aligned_alloc(alignment, size * sizeof(float));
-    return std::move(std::unique_ptr<float[]>(alloc));
+    return std::unique_ptr<float[]>(alloc);
   };
 
   auto make_count_buffer = [&]() { return make_buffer(count); };
@@ -188,6 +188,9 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
     }
     if (util::floats_equal(material, 3.0f)) {
       b = 0xff;
+    }
+    if (util::floats_equal(material, 4.0f)) {
+      r = g = b = 0xff;
     }
 
     return (r << 16) | (g << 8) | (b);

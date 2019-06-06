@@ -10,7 +10,7 @@ void unused_value_elimination(Bytecode &bc) {
   auto is_unused = [&bc](Node_Id id) -> bool {
     return std::none_of(
         bc.nodes.begin(), bc.nodes.end(),
-        [&bc, id](const Node &other) -> bool { return other.uses(id); });
+        [id](const Node &other) -> bool { return other.uses(id); });
   };
 
   for (size_t i = bc.nodes.size(); --i;) {
