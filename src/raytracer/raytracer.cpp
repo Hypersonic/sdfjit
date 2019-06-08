@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <memory>
 #include <pthread.h>
+#include <thread>
 
 #include "bytecode/bytecode.h"
 #include "bytecode/opt.h"
@@ -70,9 +71,8 @@ bool Raytracer::one_round(size_t count, float *__restrict xs,
     const auto p = _mm256_load_ps(&ps[off]);
     const auto dp = _mm256_load_ps(&dps[off]);
     const auto retained_p = _mm256_andnot_ps(op_mask, p);
-    const auto new_p = _mm256_fmadd_ps(dist, dp, p);
-    const auto changed_p = _mm256_and_ps(op_mask, new_p);
-    const auto result_p = _mm256_or_ps(changed_p, retained_p);
+    const auto new_p = _mm256_and_ps(op_mask, _mm256_fmadd_ps(dist, dp, p));
+    const auto result_p = _mm256_or_ps(new_p, retained_p);
     _mm256_store_ps(&ps[off], result_p);
   };
 
@@ -131,7 +131,7 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   // our screen is 3-component _RGB (top byte of the pixel is always empty)
   const auto count = width * height;
   const auto alignment = 256 / 8;
-  const auto num_threads = 16; // XXX: should get number of cpus dynamically
+  const auto num_threads = std::thread::hardware_concurrency() * 128;
 
   auto make_buffer = [&](size_t size) -> std::unique_ptr<float[]> {
     auto alloc = (float *)aligned_alloc(alignment, size * sizeof(float));
@@ -240,11 +240,16 @@ void Raytracer::trace_image(float px, float py, float pz, float hx, float hy,
   auto run_length = count / num_threads;
   for (size_t i = 0; i < num_threads; i++) {
     auto offset = i * run_length;
-    thread_args.push_back(
-        Trace_Thread_Arg{this, run_length, xs.get() + offset, ys.get() + offset,
-                         zs.get() + offset, dxs.get() + offset,
-                         dys.get() + offset, dzs.get() + offset,
-                         distances.get() + offset, materials.get() + offset});
+    auto length = run_length;
+
+    auto amount_to_align = offset % alignment;
+    offset -= amount_to_align;
+    length += amount_to_align;
+
+    thread_args.push_back(Trace_Thread_Arg{
+        this, length, xs.get() + offset, ys.get() + offset, zs.get() + offset,
+        dxs.get() + offset, dys.get() + offset, dzs.get() + offset,
+        distances.get() + offset, materials.get() + offset});
 
     pthread_t thread;
     pthread_create(&thread, NULL, (void *(*)(void *))trace_thread,
